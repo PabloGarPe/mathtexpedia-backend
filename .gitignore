@@ -33,4 +33,4 @@ build/
 .vscode/
 
 .env
-mathtexpedia-firebase-adminsdk-714lf-5109f67623.json
+src/main/resources/firebase-service-account.json
