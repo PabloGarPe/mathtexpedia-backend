@@ -29,7 +29,6 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
-		<firebase.version>9.4.1</firebase.version>
 		<spring.dotenv.version>4.0.0</spring.dotenv.version>
 	</properties>
 	<dependencies>
@@ -110,14 +109,13 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.google.firebase</groupId>
-			<artifactId>firebase-admin</artifactId>
-			<version>${firebase.version}</version>
-		</dependency>
-		<dependency>
 			<groupId>me.paulschwarz</groupId>
 			<artifactId>spring-dotenv</artifactId>
 			<version>${spring.dotenv.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
 	</dependencies>
 
