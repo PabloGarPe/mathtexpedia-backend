@@ -1,0 +1,49 @@
+{
+  "realm": "mathtexpedia",
+  "enabled": true,
+  "sslRequired": "none",
+  "roles": {
+    "realm": [
+      { "name": "ADMIN", "description": "Administrador del sistema" },
+      { "name": "USER", "description": "Usuario estándar" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "mathtexpedia-api",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@mathtexpedia.es",
+      "email": "admin@mathtexpedia.es",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Admin",
+      "lastName": "Mathtexpedia",
+      "credentials": [
+        { "type": "password", "value": "pass", "temporary": false }
+      ],
+      "realmRoles": ["ADMIN"]
+    },
+    {
+      "username": "user@mathtexpedia.es",
+      "email": "user@mathtexpedia.es",
+      "enabled": true,
+      "emailVerified": true,
+      "firstName": "Usuario",
+      "lastName": "Mathtexpedia",
+      "credentials": [
+        { "type": "password", "value": "pass", "temporary": false }
+      ],
+      "realmRoles": ["USER"]
+    }
+  ]
+}

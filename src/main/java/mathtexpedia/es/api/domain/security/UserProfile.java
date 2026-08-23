@@ -9,7 +9,7 @@ public class UserProfile {
 
     public UserProfile(String email, String role) {
         this.email = email;
-        if (role.equalsIgnoreCase("ADMIN")) {
+        if (role.equalsIgnoreCase("ROLE_ADMIN")) {
             this.role = UserRole.ADMIN;
         } else {
             this.role = UserRole.USER;
