@@ -30,6 +30,7 @@
 	<properties>
 		<java.version>21</java.version>
 		<spring.dotenv.version>4.0.0</spring.dotenv.version>
+		<resend.version>4.13.0</resend.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -116,6 +117,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.resend</groupId>
+			<artifactId>resend-java</artifactId>
+			<version>${resend.version}</version>
 		</dependency>
 	</dependencies>
 

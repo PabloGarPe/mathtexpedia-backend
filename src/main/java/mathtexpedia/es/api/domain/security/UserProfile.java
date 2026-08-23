@@ -15,4 +15,13 @@ public class UserProfile {
             this.role = UserRole.USER;
         }
     }
+
+    @Override
+    public String toString() {
+        return "[ User: " +
+                email +
+                " with Role: " +
+                role +
+                "]";
+    }
 }

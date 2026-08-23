@@ -8,6 +8,7 @@ import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
@@ -92,6 +93,13 @@ public class GenericController {
 
     @ExceptionHandler(MathtexpediaInvalidException.class)
     protected ResponseEntity<Object> handleMathtexpediaInvalidException(MathtexpediaInvalidException e) {
+        logErrorAndHttpResponse(e, "400", Level.ERROR);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    protected ResponseEntity<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         logErrorAndHttpResponse(e, "400", Level.ERROR);
 
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
