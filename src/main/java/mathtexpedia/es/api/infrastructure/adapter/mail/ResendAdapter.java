@@ -22,13 +22,23 @@ public class ResendAdapter implements MailPort {
     public void sendMail(Mail mail) throws PortActionNotPerformedException {
         Resend resend = new Resend(apiKey);
 
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(FROM_EMAIL)
-                .to(TO_EMAIL)
-                .addCc(mail.getFrom())
-                .addCc(mail.getCc())
-                .subject(mail.getSubject())
-                .html(mail.getBody()).build();
+        CreateEmailOptions params;
+
+        if (mail.getCc() != null && !mail.getCc().isEmpty())
+            params = CreateEmailOptions.builder()
+                    .from(FROM_EMAIL)
+                    .to(TO_EMAIL)
+                    .addCc(mail.getFrom())
+                    .addCc(mail.getCc())
+                    .subject(mail.getSubject())
+                    .html(mail.getBody()).build();
+        else
+            params = CreateEmailOptions.builder()
+                    .from(FROM_EMAIL)
+                    .to(TO_EMAIL)
+                    .addCc(mail.getFrom())
+                    .subject(mail.getSubject())
+                    .html(mail.getBody()).build();
 
         try {
             resend.emails().send(params);
