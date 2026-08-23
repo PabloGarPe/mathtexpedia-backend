@@ -7,4 +7,6 @@ import java.util.List;
 public interface PDFService {
 
     List<PDF> getPDFWithoutLink();
+
+    List<PDF> getPDFs();
 }
