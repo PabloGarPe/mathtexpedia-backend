@@ -47,4 +47,17 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
         return session.createQuery(cq).getResultList();
     }
 
+    @Override
+    public PDF getPDF(String pdfName) {
+        logger.trace("Getting PDF with name {}", pdfName);
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+        cq.select(root).where(cb.equal(root.get("name"), pdfName));
+
+        return session.createQuery(cq).getSingleResult();
+    }
+
 }

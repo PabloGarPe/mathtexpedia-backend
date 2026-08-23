@@ -7,4 +7,6 @@ public interface PDFDataService {
     List<PDF> getPDFWithNoLink();
 
     List<PDF> getPDFs();
+
+    PDF getPDF(String pdfName);
 }
