@@ -15,4 +15,6 @@ public interface PDFService {
     PDF getPDF(String pdfName) throws MathtexpediaInvalidException;
 
     PDF createPDF(CreatePDFDto dto) throws MathtexpediaInvalidException;
+
+    void deletePDF(String pdfName) throws MathtexpediaInvalidException;
 }

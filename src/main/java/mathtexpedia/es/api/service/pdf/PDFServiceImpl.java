@@ -47,4 +47,13 @@ public class PDFServiceImpl extends GenericController implements PDFService {
         return pdfDataService.createPDF(pdf);
 
     }
+
+    @Override
+    public void deletePDF(String pdfName) throws MathtexpediaInvalidException {
+        try {
+            pdfDataService.deletePDF(pdfName);
+        } catch (Exception e) {
+            throw new MathtexpediaInvalidException("An error occurred while deleting PDF");
+        }
+    }
 }

@@ -38,4 +38,12 @@ public class PDFController extends GenericController {
 
     }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<PDF> deletePDF(@RequestParam String pdfName) {
+        logger.debug("Called recieve to delete PDF {}",pdfName);
+
+        pdfService.deletePDF(pdfName);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(null);
+    }
+
 }

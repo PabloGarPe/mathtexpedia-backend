@@ -13,5 +13,7 @@ public interface PDFDataService {
 
     PDF getPDF(String pdfName);
 
-    PDF createPDF(PDF pdf) throws MathtexpediaInvalidException;
+    PDF createPDF(PDF pdf);
+
+    void deletePDF(String pdfName);
 }
