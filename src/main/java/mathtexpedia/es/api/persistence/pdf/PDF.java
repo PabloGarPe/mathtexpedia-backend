@@ -18,6 +18,9 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Table(uniqueConstraints = {
+        @UniqueConstraint(columnNames = "name")
+})
 public class PDF {
 
     @Id

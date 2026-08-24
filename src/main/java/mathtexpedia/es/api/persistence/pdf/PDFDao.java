@@ -6,6 +6,7 @@ import jakarta.persistence.criteria.Root;
 import mathtexpedia.es.api.persistence.GenericJPADao;
 import org.hibernate.Session;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -13,6 +14,7 @@ import java.util.List;
 public class PDFDao extends GenericJPADao implements PDFDataService{
 
     @Override
+    @Transactional(readOnly = true)
     public List<PDF> getPDFWithNoLink() {
         logger.trace("Getting PDF with no link");
 
@@ -35,6 +37,7 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<PDF> getPDFs() {
         logger.trace("Getting PDFs");
         Session session = em.unwrap(Session.class);
@@ -48,6 +51,7 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
     }
 
     @Override
+    @Transactional(readOnly = true)
     public PDF getPDF(String pdfName) {
         logger.trace("Getting PDF with name {}", pdfName);
         Session session = em.unwrap(Session.class);
@@ -58,6 +62,15 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
         cq.select(root).where(cb.equal(root.get("name"), pdfName));
 
         return session.createQuery(cq).getSingleResult();
+    }
+
+    @Override
+    @Transactional
+    public PDF createPDF(PDF pdf) {
+        logger.trace("Creating PDF {}", pdf);
+        em.persist(pdf);
+        return pdf;
+
     }
 
 }
