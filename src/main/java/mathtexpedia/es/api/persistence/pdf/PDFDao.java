@@ -1,7 +1,6 @@
 package mathtexpedia.es.api.persistence.pdf;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaDelete;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import mathtexpedia.es.api.persistence.GenericJPADao;
@@ -80,6 +79,26 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
         logger.trace("Deleting PDF with name {}", pdfName);
         PDF pdf =  getPDF(pdfName);
         em.remove(pdf);
+    }
+
+    @Override
+    @Transactional
+    public PDF updatePDF(PDF pdf) {
+        logger.trace("Updating PDF {}", pdf);
+        em.merge(pdf);
+        return pdf;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PDF getPDFById(long pdfId) {
+        logger.trace("Getting PDF with id {}", pdfId);
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+        cq.select(root).where(cb.equal(root.get("id"), pdfId));
+        return session.createQuery(cq).getSingleResult();
     }
 
 }

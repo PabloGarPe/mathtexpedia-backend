@@ -56,4 +56,24 @@ public class PDFServiceImpl extends GenericController implements PDFService {
             throw new MathtexpediaInvalidException("An error occurred while deleting PDF");
         }
     }
+
+    @Override
+    public PDF updatePDF(PDF pdf, long pdfId) throws MathtexpediaInvalidException {
+        logger.debug("Trying to update PDF with id: " + pdfId);
+        try {
+            PDF resource = pdfDataService.getPDFById(pdfId);
+            if (resource == null)
+                throw new MathtexpediaInvalidException("PDF with id: " + pdfId + " not found");
+
+            resource.setLastTimeEdited(new Date());
+            resource.setName(pdf.getName());
+            resource.setLink(pdf.getLink());
+            resource.setTag(pdf.getTag());
+            resource.setDescription(pdf.getDescription());
+            pdfDataService.updatePDF(resource);
+        } catch (Exception e) {
+            throw new MathtexpediaInvalidException("An error occurred while updating PDF");
+        }
+        return pdf;
+    }
 }
