@@ -39,11 +39,19 @@ public class PDFController extends GenericController {
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<PDF> deletePDF(@RequestParam String pdfName) {
+    public ResponseEntity<PDF> deletePDF(@RequestParam String pdfName) throws MathtexpediaInvalidException {
         logger.debug("Called recieve to delete PDF {}",pdfName);
 
         pdfService.deletePDF(pdfName);
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(null);
+    }
+
+    @PatchMapping("/update")
+    public ResponseEntity<PDF> updatePDF(@RequestBody PDF pdf, @RequestParam long pdfId) throws MathtexpediaInvalidException {
+        logger.debug("Called recieve to update PDF {}",pdf);
+
+        pdf = pdfService.updatePDF(pdf, pdfId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(pdf);
     }
 
 }

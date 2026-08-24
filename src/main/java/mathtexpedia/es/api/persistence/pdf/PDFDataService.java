@@ -1,8 +1,5 @@
 package mathtexpedia.es.api.persistence.pdf;
 
-import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
-import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
-
 import java.util.List;
 
 public interface PDFDataService {
@@ -16,4 +13,8 @@ public interface PDFDataService {
     PDF createPDF(PDF pdf);
 
     void deletePDF(String pdfName);
+
+    PDF updatePDF(PDF pdf);
+
+    PDF getPDFById(long pdfId);
 }
