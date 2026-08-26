@@ -4,10 +4,10 @@ import mathtexpedia.es.api.domain.model.chatbot.ChatRequest;
 import mathtexpedia.es.api.domain.model.chatbot.ChatResource;
 import mathtexpedia.es.api.domain.model.chatbot.ChatResponse;
 import mathtexpedia.es.api.domain.model.chatbot.SitemapEntry;
-import mathtexpedia.es.api.domain.model.pdf.PdfCatalogPortTemporal;
-import mathtexpedia.es.api.domain.model.pdf.PdfSummaryTemporal;
+import mathtexpedia.es.api.domain.model.pdf.PDFSummary;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
 import mathtexpedia.es.api.domain.port.chatbot.SitemapPort;
+import mathtexpedia.es.api.domain.port.pdf.PDFCatalogPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -60,12 +60,12 @@ public class ChatbotServiceImpl implements ChatbotService {
             "blog", "post", "posts", "leer", "explicacion", "teoria"
     );
 
-    private final PdfCatalogPortTemporal pdfCatalogPortTemporal;
+    private final PDFCatalogPort pdfCatalogPort;
     private final SitemapPort sitemapPort;
     private final GenerativeAiPort generativeAiPort;
 
-    public ChatbotServiceImpl(PdfCatalogPortTemporal pdfCatalogPortTemporal, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort) {
-        this.pdfCatalogPortTemporal = pdfCatalogPortTemporal;
+    public ChatbotServiceImpl(PDFCatalogPort pdfCatalogPort, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort) {
+        this.pdfCatalogPort = pdfCatalogPort;
         this.sitemapPort = sitemapPort;
         this.generativeAiPort = generativeAiPort;
     }
@@ -77,7 +77,7 @@ public class ChatbotServiceImpl implements ChatbotService {
 
             boolean isNavigation = isNavigationQuery(request.getMessage());
 
-            List<PdfSummaryTemporal> pdfs = List.of();
+            List<PDFSummary> pdfs = List.of();
             List<SitemapEntry> blogPosts = List.of();
             List<SitemapEntry> navigationPages = List.of();
 
@@ -153,10 +153,10 @@ public class ChatbotServiceImpl implements ChatbotService {
         return normalized.replaceAll("\\p{M}", "");
     }
 
-    private List<PdfSummaryTemporal> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
+    private List<PDFSummary> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
         try {
             List<String> keywords = extractKeywords(query);
-            List<PdfSummaryTemporal> allPdfs = includeLinks ? pdfCatalogPortTemporal.getAllPdfs() : pdfCatalogPortTemporal.getAllPdfsWithNoLink();
+            List<PDFSummary> allPdfs = includeLinks ? pdfCatalogPort.getAllPdfs() : pdfCatalogPort.getAllPdfsWithNoLink();
 
             return allPdfs.stream()
                     .map(pdf -> Map.entry(pdf, score(pdf, keywords)))
@@ -178,7 +178,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                 .toList();
     }
 
-    private int score(PdfSummaryTemporal pdf, List<String> keywords) {
+    private int score(PDFSummary pdf, List<String> keywords) {
         String name = normalize(pdf.getName());
         String tag = normalize(pdf.getTag());
         int score = 0;
@@ -201,7 +201,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
     }
 
-    private String formatEducationalResourcesForPrompt(List<PdfSummaryTemporal> pdfs, List<SitemapEntry> blogPosts, boolean isAuthenticated) {
+    private String formatEducationalResourcesForPrompt(List<PDFSummary> pdfs, List<SitemapEntry> blogPosts, boolean isAuthenticated) {
         if (pdfs.isEmpty() && blogPosts.isEmpty()) {
             return "No se encontraron recursos educativos para esta consulta.";
         }
@@ -213,7 +213,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                     ? "**PDFs para visualizar (usuario autenticado):**\n"
                     : "**PDFs disponibles (requieren registro):**\n");
 
-            Map<String, List<PdfSummaryTemporal>> grouped = pdfs.stream()
+            Map<String, List<PDFSummary>> grouped = pdfs.stream()
                     .collect(Collectors.groupingBy(
                             pdf -> pdf.getTag() == null || pdf.getTag().isBlank() ? "General" : pdf.getTag(),
                             LinkedHashMap::new,
@@ -249,7 +249,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         return formatted.toString();
     }
 
-    private List<ChatResource> buildResources(List<PdfSummaryTemporal> pdfs, List<SitemapEntry> blogPosts, List<SitemapEntry> navigationPages) {
+    private List<ChatResource> buildResources(List<PDFSummary> pdfs, List<SitemapEntry> blogPosts, List<SitemapEntry> navigationPages) {
         List<ChatResource> resources = new ArrayList<>();
         pdfs.forEach(pdf -> resources.add(new ChatResource(ChatResource.ChatContentType.PDF, pdf.getName(), pdf.getLink())));
         blogPosts.forEach(post -> resources.add(new ChatResource(ChatResource.ChatContentType.BLOG_POST, post.getTitle(), post.getLoc())));
