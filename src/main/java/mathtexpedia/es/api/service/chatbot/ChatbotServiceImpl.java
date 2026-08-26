@@ -8,6 +8,7 @@ import mathtexpedia.es.api.domain.model.pdf.PDFSummary;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
 import mathtexpedia.es.api.domain.port.chatbot.SitemapPort;
 import mathtexpedia.es.api.domain.port.pdf.PDFCatalogPort;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -100,18 +101,7 @@ public class ChatbotServiceImpl implements ChatbotService {
 
             String contextToUse = isNavigation ? navigationContext : educationalContext;
 
-            String authInstructions = (!isAuthenticated && !pdfs.isEmpty())
-                    ? "\n- IMPORTANTE: Si mencionas PDFs, recuerda al usuario que debe REGISTRARSE para acceder a los enlaces de descarga"
-                    : "";
-
-            String instructions = isNavigation
-                    ? "- Da el enlace directo a la página solicitada\n- Sé breve y directo"
-                    : ("- Menciona los 3-4 recursos más relevantes\n"
-                       + (isAuthenticated
-                          ? "- Proporciona los enlaces de visualización directos para PDFs\n"
-                          : "- Para PDFs, menciona que están disponibles pero requieren registro para acceder\n")
-                       + "- Incluye los enlaces completos disponibles\n"
-                       + "- Máximo 8-10 líneas" + authInstructions);
+            String instructions = getInstructions(isAuthenticated, pdfs, isNavigation);
 
             String prompt = """
                     %s
@@ -142,6 +132,21 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
     }
 
+    private static @NonNull String getInstructions(boolean isAuthenticated, List<PDFSummary> pdfs, boolean isNavigation) {
+        String authInstructions = (!isAuthenticated && !pdfs.isEmpty())
+                ? "\n- IMPORTANTE: Si mencionas PDFs, recuerda al usuario que debe REGISTRARSE para acceder a los enlaces de descarga"
+                : "";
+
+        return isNavigation
+                ? "- Da el enlace directo a la página solicitada\n- Sé breve y directo"
+                : ("- Menciona los 3-4 recursos más relevantes\n"
+                   + (isAuthenticated
+                      ? "- Proporciona los enlaces de visualización directos para PDFs\n"
+                      : "- Para PDFs, menciona que están disponibles pero requieren registro para acceder\n")
+                   + "- Incluye los enlaces completos disponibles\n"
+                   + "- Máximo 8-10 líneas" + authInstructions);
+    }
+
     private boolean isNavigationQuery(String query) {
         String normalized = normalize(query);
         return NAV_KEYWORDS.stream().anyMatch(normalized::contains);
@@ -153,6 +158,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         return normalized.replaceAll("\\p{M}", "");
     }
 
+    @SuppressWarnings("SameParameterValue")
     private List<PDFSummary> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
         try {
             List<String> keywords = extractKeywords(query);
@@ -189,6 +195,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         return score;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private List<SitemapEntry> searchRelevantBlogPosts(String query, int limit) {
         try {
             return sitemapPort.searchUrls(query, limit * 2).stream()
