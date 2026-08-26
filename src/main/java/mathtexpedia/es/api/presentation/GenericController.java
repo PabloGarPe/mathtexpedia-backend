@@ -1,6 +1,8 @@
 package mathtexpedia.es.api.presentation;
 
 import mathtexpedia.es.api.domain.exception.*;
+import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.domain.security.UserRole;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -54,6 +56,11 @@ public class GenericController {
                 logger.error(message, e);
                 break;
         }
+    }
+
+    public void checkIfAdmin(UserProfile user) throws MathtexpediaUnauthorizedException {
+        if (!user.getRole().equals(UserRole.ADMIN))
+            throw new MathtexpediaUnauthorizedException("Not an administrator");
     }
 
     @ExceptionHandler(PortBadRequestException.class)

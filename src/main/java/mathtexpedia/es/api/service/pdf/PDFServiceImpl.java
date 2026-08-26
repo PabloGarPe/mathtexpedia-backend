@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 @Service
-public class PDFServiceImpl extends GenericController implements PDFService {
+public class PDFServiceImpl implements PDFService {
 
     @Autowired
     private PDFDataService pdfDataService;
@@ -59,7 +59,6 @@ public class PDFServiceImpl extends GenericController implements PDFService {
 
     @Override
     public PDF updatePDF(PDF pdf, long pdfId) throws MathtexpediaInvalidException {
-        logger.debug("Trying to update PDF with id: " + pdfId);
         try {
             PDF resource = pdfDataService.getPDFById(pdfId);
             if (resource == null)
