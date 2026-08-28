@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.presentation.chatbot;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.model.chatbot.ChatRequest;
 import mathtexpedia.es.api.domain.model.chatbot.ChatResponse;
@@ -23,7 +24,15 @@ public class ChatbotController extends GenericController {
     }
 
     @PostMapping("/chat")
-    public ChatResponse chat(@AuthenticationPrincipal UserProfile user, @RequestBody @Valid ChatRequest request) {
-        return chatbotService.chat(request, user != null);
+    public ChatResponse chat(@AuthenticationPrincipal UserProfile user,
+                             @RequestBody @Valid ChatRequest request,
+                             HttpServletRequest httpRequest) {
+        String userIdentifier = user != null ? user.getEmail() : getClientIp(httpRequest);
+        return chatbotService.chat(request, user != null, userIdentifier);
+    }
+
+    private String getClientIp(HttpServletRequest req) {
+        String forwarded = req.getHeader("X-Forwarded-For");
+        return forwarded != null ? forwarded.split(",")[0].trim() : req.getRemoteAddr();
     }
 }
