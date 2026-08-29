@@ -1,5 +1,8 @@
 package mathtexpedia.es.api.presentation.chatbot;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.model.chatbot.ChatRequest;
 import mathtexpedia.es.api.domain.model.chatbot.ChatResponse;
@@ -12,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "Chatbot", description = "Asistente conversacional sobre el contenido de Mathtexpedia")
 @RestController
 @RequestMapping("/chatbot")
 public class ChatbotController extends GenericController {
@@ -22,6 +26,10 @@ public class ChatbotController extends GenericController {
         this.chatbotService = chatbotService;
     }
 
+    @Operation(summary = "Envía un mensaje al chatbot",
+            description = "Acepta tanto peticiones anónimas como autenticadas; si se envía un JWT válido, "
+                    + "la respuesta puede tener en cuenta el contexto del usuario",
+            security = { @SecurityRequirement(name = "") })
     @PostMapping("/chat")
     public ChatResponse chat(@AuthenticationPrincipal UserProfile user, @RequestBody @Valid ChatRequest request) {
         return chatbotService.chat(request, user != null);

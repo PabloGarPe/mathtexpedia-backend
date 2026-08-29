@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.domain.model.chatbot;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.Collections;
@@ -13,8 +14,13 @@ public class ChatResponse {
         ERROR
     }
 
+    @Schema(description = "Respuesta generada por el chatbot")
     private String response;
+
+    @Schema(description = "Recursos de Mathtexpedia relevantes para la respuesta")
     private List<ChatResource> relevantResources;
+
+    @Schema(description = "Resultado de la operación")
     private ChatResponseStatus status;
 
     public static ChatResponse success(String response, List<ChatResource> relevantResources) {
