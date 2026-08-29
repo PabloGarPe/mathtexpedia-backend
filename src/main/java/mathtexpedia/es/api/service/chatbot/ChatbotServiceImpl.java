@@ -1,19 +1,20 @@
 package mathtexpedia.es.api.service.chatbot;
 
-import mathtexpedia.es.api.domain.model.chatbot.ChatRequest;
-import mathtexpedia.es.api.domain.model.chatbot.ChatResource;
-import mathtexpedia.es.api.domain.model.chatbot.ChatResponse;
-import mathtexpedia.es.api.domain.model.chatbot.SitemapEntry;
+import mathtexpedia.es.api.domain.model.chatbot.*;
 import mathtexpedia.es.api.domain.model.pdf.PDFSummary;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
 import mathtexpedia.es.api.domain.port.chatbot.SitemapPort;
 import mathtexpedia.es.api.domain.port.pdf.PDFCatalogPort;
+import mathtexpedia.es.api.persistence.chatbot.ChatUsage;
+import mathtexpedia.es.api.persistence.chatbot.ChatUsageDataService;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -64,17 +65,32 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final PDFCatalogPort pdfCatalogPort;
     private final SitemapPort sitemapPort;
     private final GenerativeAiPort generativeAiPort;
+    private final ChatUsageDataService chatUsageDataService;
 
-    public ChatbotServiceImpl(PDFCatalogPort pdfCatalogPort, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort) {
+    @Value("${chatbot.anonymous-daily-request-limit:1}")
+    private int anonymousDailyRequestLimit;
+
+    @Value("${chatbot.daily-token-limit:3000}")
+    private int dailyTokenLimit;
+
+    public ChatbotServiceImpl(PDFCatalogPort pdfCatalogPort, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort, ChatUsageDataService chatUsageDataService) {
         this.pdfCatalogPort = pdfCatalogPort;
         this.sitemapPort = sitemapPort;
         this.generativeAiPort = generativeAiPort;
+        this.chatUsageDataService = chatUsageDataService;
     }
 
     @Override
-    public ChatResponse chat(ChatRequest request, boolean isAuthenticated) {
+    public ChatResponse chat(ChatRequest request, boolean isAuthenticated, String userIdentifier) {
         try {
             logger.info("Processing chat request: {}", request.getMessage());
+
+            LocalDate today = LocalDate.now();
+            Optional<ChatResponse> limitResponse = checkUsageLimit(isAuthenticated, userIdentifier, today);
+            if (limitResponse.isPresent()) {
+                logger.warn("Usage limit reached for user: {} on date: {}", userIdentifier, today);
+                return limitResponse.get();
+            }
 
             boolean isNavigation = isNavigationQuery(request.getMessage());
 
@@ -100,36 +116,57 @@ public class ChatbotServiceImpl implements ChatbotService {
             }
 
             String contextToUse = isNavigation ? navigationContext : educationalContext;
-
             String instructions = getInstructions(isAuthenticated, pdfs, isNavigation);
 
-            String prompt = """
-                    %s
-                    
-                    %s
-                    
-                    %s
-                    
-                    CONSULTA DEL USUARIO: %s
-                    
-                    INSTRUCCIONES:
-                    %s
-                    """.formatted(
-                    SYSTEM_CONTEXT,
-                    contextToUse,
-                    conversationContext.isEmpty() ? "" : "HISTORIAL DE CONVERSACIÓN:\n" + conversationContext,
-                    request.getMessage(),
-                    instructions
-            );
+            String prompt = buildPrompt(contextToUse, conversationContext, request.getMessage(), instructions);
 
-            String response = generativeAiPort.generate(prompt);
-
-            return ChatResponse.success(response, buildResources(pdfs, blogPosts, navigationPages));
+            GenerationResult result = generativeAiPort.generate(prompt);
+            chatUsageDataService.incrementUsage(userIdentifier, today, result.totalTokens());
+            return ChatResponse.success(result.text(), buildResources(pdfs, blogPosts, navigationPages));
 
         } catch (Exception e) {
             logger.error("Error processing chat request", e);
             return ChatResponse.error("Lo siento, estoy teniendo problemas técnicos. Por favor, intenta de nuevo en unos momentos.");
         }
+    }
+
+    private Optional<ChatResponse> checkUsageLimit(boolean isAuthenticated, String userIdentifier, LocalDate today) {
+        Optional<ChatUsage> usage = chatUsageDataService.get(userIdentifier, today);
+
+        if (!isAuthenticated) {
+            int requests = usage.map(ChatUsage::getRequestCount).orElse(0);
+            if (requests >= anonymousDailyRequestLimit) {
+                return Optional.of(ChatResponse.error("Has usado tu mensaje gratuito hoy. Regístrate para poder seguir chateando con el asistente y acceder a todos los recursos."));
+            }
+        } else {
+            int tokens = usage.map(ChatUsage::getTokensUsed).orElse(0);
+            if (tokens >= dailyTokenLimit) {
+                return Optional.of(ChatResponse.error("Has alcanzado tu límite diario de uso del chat. Vuelve mañana."));
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private String buildPrompt(String contextToUse, String conversationContext, String message, String instructions) {
+        return """
+                %s
+                
+                %s
+                
+                %s
+                
+                CONSULTA DEL USUARIO: %s
+                
+                INSTRUCCIONES:
+                %s
+                """.formatted(
+                SYSTEM_CONTEXT,
+                contextToUse,
+                conversationContext.isEmpty() ? "" : "HISTORIAL DE CONVERSACIÓN:\n" + conversationContext,
+                message,
+                instructions
+        );
     }
 
     private static @NonNull String getInstructions(boolean isAuthenticated, List<PDFSummary> pdfs, boolean isNavigation) {
