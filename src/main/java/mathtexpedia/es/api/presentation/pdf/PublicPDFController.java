@@ -23,7 +23,7 @@ public class PublicPDFController implements PublicEndpoint {
 
     @Operation(summary = "Lista los PDFs sin enlace de descarga",
             description = "Pensado para mostrar el catálogo público sin exponer el link real del archivo",
-            security = { @SecurityRequirement(name = "") })
+            security = { @SecurityRequirement })
     @GetMapping("no-link")
     public List<PDF> getPDFWithoutLink() {
         return pdfService.getPDFWithoutLink();

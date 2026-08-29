@@ -29,7 +29,7 @@ public class ChatbotController extends GenericController {
     @Operation(summary = "Envía un mensaje al chatbot",
             description = "Acepta tanto peticiones anónimas como autenticadas; si se envía un JWT válido, "
                     + "la respuesta puede tener en cuenta el contexto del usuario",
-            security = { @SecurityRequirement(name = "") })
+            security = { @SecurityRequirement })
     @PostMapping("/chat")
     public ChatResponse chat(@AuthenticationPrincipal UserProfile user, @RequestBody @Valid ChatRequest request) {
         return chatbotService.chat(request, user != null);
