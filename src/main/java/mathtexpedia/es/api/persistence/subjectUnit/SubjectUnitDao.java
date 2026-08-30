@@ -5,13 +5,13 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Root;
 import mathtexpedia.es.api.persistence.GenericJPADao;
 import org.hibernate.Session;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
-@Component
+@Repository
 public class SubjectUnitDao extends GenericJPADao implements SubjectUnitDataService {
     @Override
     @Transactional(readOnly = true)
