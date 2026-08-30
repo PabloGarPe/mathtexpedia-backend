@@ -17,13 +17,14 @@ public class CustomJwtAuthConverter implements Converter<Jwt, AbstractAuthentica
         Collection<GrantedAuthority> authorities = roleConverter.convert(jwt);
 
         String email = jwt.getClaimAsString("email");
+        String id = jwt.getSubject();
 
         String role = authorities.stream()
                 .findFirst()
                 .map(GrantedAuthority::getAuthority)
                 .orElse("ROLE_USER");
 
-        UserProfile userProfile = new UserProfile(email, role);
+        UserProfile userProfile = new UserProfile(email, role, id);
 
         return new UserProfileAuthenticationToken(userProfile, jwt, authorities);
     }
