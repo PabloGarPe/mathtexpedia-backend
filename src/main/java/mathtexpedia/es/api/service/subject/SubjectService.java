@@ -13,11 +13,11 @@ public interface SubjectService {
 
     List<SubjectDto> getSubjects();
 
-    Optional<SubjectDto> getSubject(long id) throws MathtexpediaNotFoundException;
+    Optional<SubjectDto> getSubject(long id);
 
-    SubjectDto create(CreateSubjectDto dto);
+    SubjectDto create(CreateSubjectDto dto) throws MathtexpediaConflictException;
 
     void delete(long id) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 
-    SubjectDto update(long id, UpdateSubjectDto dto) throws MathtexpediaNotFoundException;
+    SubjectDto update(long id, UpdateSubjectDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 }

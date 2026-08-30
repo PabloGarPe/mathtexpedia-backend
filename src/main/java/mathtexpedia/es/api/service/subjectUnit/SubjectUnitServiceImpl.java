@@ -30,8 +30,12 @@ public class SubjectUnitServiceImpl implements SubjectUnitService{
     }
 
     @Override
-    public List<SubjectUnitDto> getSubjectsUnitsBySubjectId(long subjectId) {
+    public List<SubjectUnitDto> getSubjectsUnitsBySubjectId(long subjectId) throws MathtexpediaNotFoundException {
         logger.info("Getting subject units for subject with id: {}", subjectId);
+
+        if (subjectDataService.getById(subjectId).isEmpty()) {
+            throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
+        }
 
         return subjectUnitDataService.getAllForSubject(subjectId)
                 .stream()
@@ -56,16 +60,16 @@ public class SubjectUnitServiceImpl implements SubjectUnitService{
         subjectUnit.setPosition(dto.getPosition());
 
         Optional<Subject> subject = subjectDataService.getById(subjectId);
-        if (subject.isPresent()) {
-            subjectUnit.setSubject(subject.get());
-            try {
-                SubjectUnit created = subjectUnitDataService.create(subjectUnit);
-                return toDto(created);
-            } catch (PersistenceException e) {
-                throw new MathtexpediaConflictException("Error creating subject unit: " + e.getMessage(), e);
-            }
-        } else {
+        if (subject.isEmpty()) {
             throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
+        }
+
+        subjectUnit.setSubject(subject.get());
+        try {
+            SubjectUnit created = subjectUnitDataService.create(subjectUnit);
+            return toDto(created);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error creating subject unit: " + e.getMessage(), e);
         }
     }
 
@@ -79,7 +83,7 @@ public class SubjectUnitServiceImpl implements SubjectUnitService{
     }
 
     @Override
-    public SubjectUnitDto update(long id, UpdateSubjectUnitDto dto) throws MathtexpediaNotFoundException {
+    public SubjectUnitDto update(long id, UpdateSubjectUnitDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Updating subject unit with id: {}", id);
 
         SubjectUnit toUpdate = subjectUnitDataService.getById(id)
@@ -87,9 +91,12 @@ public class SubjectUnitServiceImpl implements SubjectUnitService{
 
         toUpdate.setName(dto.getName());
         toUpdate.setPosition(dto.getPosition());
-
-        SubjectUnit updated = subjectUnitDataService.update(toUpdate);
-        return toDto(updated);
+        try {
+            SubjectUnit updated = subjectUnitDataService.update(toUpdate);
+            return toDto(updated);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error updating subject unit: " + e.getMessage(), e);
+        }
     }
 
     private SubjectUnitDto toDto(SubjectUnit subjectUnit) {

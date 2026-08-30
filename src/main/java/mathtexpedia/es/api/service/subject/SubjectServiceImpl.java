@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.service.subject;
 
+import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.subject.CreateSubjectDto;
@@ -47,14 +48,18 @@ public class SubjectServiceImpl implements SubjectService{
     }
 
     @Override
-    public SubjectDto create(CreateSubjectDto dto) {
+    public SubjectDto create(CreateSubjectDto dto) throws MathtexpediaConflictException {
         logger.info("Creating new subject with name: {}", dto.getName());
 
         Subject subject = new Subject();
         subject.setName(dto.getName());
         subject.setDescription(dto.getDescription());
-        Subject created = subjectDataService.create(subject);
-        return toDto(created);
+        try {
+            Subject created = subjectDataService.create(subject);
+            return toDto(created);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error creating subject: " + e.getMessage(), e);
+        }
     }
 
     @Override
@@ -72,15 +77,19 @@ public class SubjectServiceImpl implements SubjectService{
     }
 
     @Override
-    public SubjectDto update(long id, UpdateSubjectDto dto) throws MathtexpediaNotFoundException {
+    public SubjectDto update(long id, UpdateSubjectDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Updating subject with id: {}", id);
 
         Subject toUpdate = subjectDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject not found with id: " + id));
         toUpdate.setName(dto.getName());
         toUpdate.setDescription(dto.getDescription());
-        Subject updated = subjectDataService.update(toUpdate);
-        return toDto(updated);
+        try {
+            Subject updated = subjectDataService.update(toUpdate);
+            return toDto(updated);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error updating subject: " + e.getMessage(), e);
+        }
     }
 
     private SubjectDto toDto(Subject subject) {

@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface SubjectUnitService {
 
-    List<SubjectUnitDto> getSubjectsUnitsBySubjectId(long subjectId);
+    List<SubjectUnitDto> getSubjectsUnitsBySubjectId(long subjectId) throws MathtexpediaNotFoundException;
 
     Optional<SubjectUnitDto> getSubjectUnit(long id);
 
@@ -19,5 +19,5 @@ public interface SubjectUnitService {
 
     void delete(long id) throws MathtexpediaNotFoundException;
 
-    SubjectUnitDto update(long id, UpdateSubjectUnitDto dto) throws MathtexpediaNotFoundException;
+    SubjectUnitDto update(long id, UpdateSubjectUnitDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 }
