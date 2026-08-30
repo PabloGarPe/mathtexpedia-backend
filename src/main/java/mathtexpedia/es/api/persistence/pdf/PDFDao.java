@@ -9,36 +9,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class PDFDao extends GenericJPADao implements PDFDataService{
 
     @Override
     @Transactional(readOnly = true)
-    public List<PDF> getPDFWithNoLink() {
-        logger.trace("Getting PDF with no link");
-
-        Session session = em.unwrap(Session.class);
-        CriteriaBuilder cb = session.getCriteriaBuilder();
-
-        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
-        Root<PDF> root = cq.from(PDF.class);
-
-        cq.select(cb.construct(
-                PDF.class,
-                root.get("id"),
-                root.get("name"),
-                root.get("lastTimeEdited"),
-                root.get("description"),
-                root.get("tag")
-        ));
-
-        return session.createQuery(cq).getResultList();
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<PDF> getPDFs() {
+    public List<PDF> getAll() {
         logger.trace("Getting PDFs");
         Session session = em.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
@@ -52,17 +30,35 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
 
     @Override
     @Transactional(readOnly = true)
-    public PDF getPDF(String pdfName) {
+    public Optional<PDF> getPDF(String pdfName) {
         logger.trace("Getting PDF with name {}", pdfName);
         Session session = em.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
 
         CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
         Root<PDF> root = cq.from(PDF.class);
+
         cq.select(root).where(cb.equal(root.get("name"), pdfName));
 
-        return session.createQuery(cq).getSingleResult();
+        return session.createQuery(cq).getResultList().stream().findFirst();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PDF> getAllForSubjectUnit(long subjectUnitId) {
+        logger.trace("Getting PDFs for subject unit with id {}", subjectUnitId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+
+        cq.select(root).where(cb.equal(root.get("subjectUnit").get("id"), subjectUnitId));
+
+        return session.createQuery(cq).getResultList();
+    }
+
 
     @Override
     @Transactional
@@ -70,35 +66,32 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
         logger.trace("Creating PDF {}", pdf);
         em.persist(pdf);
         return pdf;
-
     }
 
     @Override
     @Transactional
-    public void deletePDF(String pdfName) {
-        logger.trace("Deleting PDF with name {}", pdfName);
-        PDF pdf =  getPDF(pdfName);
-        em.remove(pdf);
+    public void deletePDF(PDF pdf) {
+        logger.trace("Deleting PDF with name {}", pdf.getName());
+        em.remove(em.contains(pdf) ? pdf : em.merge(pdf));
     }
 
     @Override
     @Transactional
     public PDF updatePDF(PDF pdf) {
         logger.trace("Updating PDF {}", pdf);
-        em.merge(pdf);
-        return pdf;
+        return em.merge(pdf);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PDF getPDFById(long pdfId) {
+    public Optional<PDF> getPDFById(long pdfId) {
         logger.trace("Getting PDF with id {}", pdfId);
         Session session = em.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
         CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
         Root<PDF> root = cq.from(PDF.class);
         cq.select(root).where(cb.equal(root.get("id"), pdfId));
-        return session.createQuery(cq).getSingleResult();
+        return session.createQuery(cq).getResultList().stream().findFirst();
     }
 
 }

@@ -17,7 +17,7 @@ public interface SubjectUnitService {
 
     SubjectUnitDto create(CreateSubjectUnitDto dto, long subjectId) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 
-    void delete(long id) throws MathtexpediaNotFoundException;
+    void delete(long id) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 
     SubjectUnitDto update(long id, UpdateSubjectUnitDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 }

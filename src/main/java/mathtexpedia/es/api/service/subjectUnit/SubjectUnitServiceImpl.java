@@ -6,6 +6,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.subjectUnit.CreateSubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.UpdateSubjectUnitDto;
+import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
@@ -17,16 +18,18 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class SubjectUnitServiceImpl implements SubjectUnitService{
+public class SubjectUnitServiceImpl implements SubjectUnitService {
 
     private static final Logger logger = org.slf4j.LoggerFactory.getLogger(SubjectUnitServiceImpl.class);
 
     private final SubjectUnitDataService subjectUnitDataService;
     private final SubjectDataService subjectDataService;
+    private final PDFDataService pDFDataService;
 
-    public SubjectUnitServiceImpl(SubjectUnitDataService subjectUnitService, SubjectDataService subjectService) {
+    public SubjectUnitServiceImpl(SubjectUnitDataService subjectUnitService, SubjectDataService subjectService, PDFDataService pDFDataService) {
         this.subjectUnitDataService = subjectUnitService;
         this.subjectDataService = subjectService;
+        this.pDFDataService = pDFDataService;
     }
 
     @Override
@@ -74,11 +77,16 @@ public class SubjectUnitServiceImpl implements SubjectUnitService{
     }
 
     @Override
-    public void delete(long id) throws MathtexpediaNotFoundException {
+    public void delete(long id) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Deleting subject unit with id: {}", id);
 
         SubjectUnit toDelete = subjectUnitDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject unit not found with id: " + id));
+
+        if(pDFDataService.getPDFById(id).isEmpty()) {
+            throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated PDFs.");
+        }
+
         subjectUnitDataService.delete(toDelete);
     }
 

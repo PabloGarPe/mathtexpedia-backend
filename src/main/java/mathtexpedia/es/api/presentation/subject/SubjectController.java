@@ -177,14 +177,15 @@ public class SubjectController extends GenericController {
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Tema eliminado"),
             @ApiResponse(responseCode = "404", description = "No existe ningún tema con ese ID"),
-            @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN")
+            @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN"),
+            @ApiResponse(responseCode = "409", description = "No se puede eliminar el tema porque tiene PDFs asociados")
     })
     @DeleteMapping("/unit/delete/{id}")
     public ResponseEntity<Void> deleteSubjectUnit(
             @Parameter(description = "ID del tema a eliminar", required = true)
             @PathVariable long id,
             @AuthenticationPrincipal UserProfile user
-    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.debug("Called deleteSubjectUnit with id {}", id);
 
         checkIfAdmin(user);

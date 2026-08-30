@@ -9,7 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import mathtexpedia.es.api.domain.model.pdf.PDFTag;
+import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 
 import java.util.Date;
 
@@ -48,17 +48,17 @@ public class PDF {
     @JsonProperty("pdf_description")
     private String description;
 
-    @Schema(description = "Categoría a la que pertenece el PDF")
-    @JsonProperty("pdf_tags")
-    @Enumerated(EnumType.STRING)
-    private PDFTag tag;
+    @ManyToOne
+    @JoinColumn(name = "subject_unit_id", nullable = false)
+    @Schema(description = "Tema del PDF, por ejemplo: Tema 1, Tema 2, etc. Además, se puede usar para llegar a la asignatura a la que pertenece el PDF")
+    private SubjectUnit subjectUnit;
 
-    public PDF(long id, String name, Date lastTimeEdited, String description, PDFTag tag) {
+    public PDF(long id, String name, Date lastTimeEdited, String description, SubjectUnit subjectUnit) {
         this.id = id;
         this.name = name;
         this.lastTimeEdited = lastTimeEdited;
         this.description = description;
-        this.tag = tag;
+        this.subjectUnit = subjectUnit;
     }
 
 }

@@ -1,12 +1,14 @@
 package mathtexpedia.es.api.service.chatbot;
 
 import mathtexpedia.es.api.domain.model.chatbot.*;
+import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFSummary;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
 import mathtexpedia.es.api.domain.port.chatbot.SitemapPort;
-import mathtexpedia.es.api.domain.port.pdf.PDFCatalogPort;
 import mathtexpedia.es.api.persistence.chatbot.ChatUsage;
 import mathtexpedia.es.api.persistence.chatbot.ChatUsageDataService;
+import mathtexpedia.es.api.service.pdf.PDFService;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,7 +64,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             "blog", "post", "posts", "leer", "explicacion", "teoria"
     );
 
-    private final PDFCatalogPort pdfCatalogPort;
+    private final PDFService pdfService;
     private final SitemapPort sitemapPort;
     private final GenerativeAiPort generativeAiPort;
     private final ChatUsageDataService chatUsageDataService;
@@ -73,8 +75,8 @@ public class ChatbotServiceImpl implements ChatbotService {
     @Value("${chatbot.daily-token-limit:3000}")
     private int dailyTokenLimit;
 
-    public ChatbotServiceImpl(PDFCatalogPort pdfCatalogPort, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort, ChatUsageDataService chatUsageDataService) {
-        this.pdfCatalogPort = pdfCatalogPort;
+    public ChatbotServiceImpl(PDFService pdfService, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort, ChatUsageDataService chatUsageDataService) {
+        this.pdfService = pdfService;
         this.sitemapPort = sitemapPort;
         this.generativeAiPort = generativeAiPort;
         this.chatUsageDataService = chatUsageDataService;
@@ -199,7 +201,9 @@ public class ChatbotServiceImpl implements ChatbotService {
     private List<PDFSummary> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
         try {
             List<String> keywords = extractKeywords(query);
-            List<PDFSummary> allPdfs = includeLinks ? pdfCatalogPort.getAllPdfs() : pdfCatalogPort.getAllPdfsWithNoLink();
+            List<PDFSummary> allPdfs = includeLinks
+                    ? pdfService.getPDFs().stream().map(this::toSummary).toList()
+                    : pdfService.getPDFsWithoutLink().stream().map(this::toSummary).toList();
 
             return allPdfs.stream()
                     .map(pdf -> Map.entry(pdf, score(pdf, keywords)))
@@ -301,4 +305,19 @@ public class ChatbotServiceImpl implements ChatbotService {
         return resources;
     }
 
+    private PDFSummary toSummary(PDFDto dto) {
+        return new PDFSummary(
+                dto.getName(),
+                dto.getSubjectUnit() != null ? dto.getSubjectUnit().getName() : null,
+                dto.getLink()
+        );
+    }
+
+    private PDFSummary toSummary(PDFNoLinkDto dto) {
+        return new PDFSummary(
+                dto.getName(),
+                dto.getSubjectUnit() != null ? dto.getSubjectUnit().getName() : null,
+                null
+        );
+    }
 }

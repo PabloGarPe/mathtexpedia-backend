@@ -1,22 +1,28 @@
 package mathtexpedia.es.api.service.pdf;
 
-import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
-import mathtexpedia.es.api.persistence.pdf.PDF;
+import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
+import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PDFService {
 
-    List<PDF> getPDFWithoutLink();
+    List<PDFDto> getPDFs();
 
-    List<PDF> getPDFs();
+    List<PDFNoLinkDto> getPDFsWithoutLink();
 
-    PDF getPDF(String pdfName) throws MathtexpediaInvalidException;
+    Optional<PDFDto> getPDF(String pdfName);
 
-    PDF createPDF(CreatePDFDto dto) throws MathtexpediaInvalidException;
+    List<PDFDto> getPDFsBySubjectUnit(long subjectUnitId);
 
-    void deletePDF(String pdfName) throws MathtexpediaInvalidException;
+    PDFDto createPDF(CreatePDFDto dto) throws MathtexpediaConflictException, MathtexpediaNotFoundException;
 
-    PDF updatePDF(PDF pdf,  long pdfId) throws MathtexpediaInvalidException;
+    void deletePDF(String pdfName) throws MathtexpediaNotFoundException;
+
+    PDFDto updatePDF(long pdfId, UpdatePDFDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
 }
