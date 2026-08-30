@@ -52,13 +52,4 @@ public class PDF {
     @JoinColumn(name = "subject_unit_id", nullable = false)
     @Schema(description = "Tema del PDF, por ejemplo: Tema 1, Tema 2, etc. Además, se puede usar para llegar a la asignatura a la que pertenece el PDF")
     private SubjectUnit subjectUnit;
-
-    public PDF(long id, String name, Date lastTimeEdited, String description, SubjectUnit subjectUnit) {
-        this.id = id;
-        this.name = name;
-        this.lastTimeEdited = lastTimeEdited;
-        this.description = description;
-        this.subjectUnit = subjectUnit;
-    }
-
 }
