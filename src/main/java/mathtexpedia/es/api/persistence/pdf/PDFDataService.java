@@ -1,20 +1,21 @@
 package mathtexpedia.es.api.persistence.pdf;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface PDFDataService {
 
-    List<PDF> getPDFWithNoLink();
+    List<PDF> getAll();
 
-    List<PDF> getPDFs();
+    Optional<PDF> getPDF(String pdfName);
 
-    PDF getPDF(String pdfName);
+    List<PDF> getAllForSubjectUnit(long subjectUnitId);
 
     PDF createPDF(PDF pdf);
 
-    void deletePDF(String pdfName);
+    void deletePDF(PDF pdf);
 
     PDF updatePDF(PDF pdf);
 
-    PDF getPDFById(long pdfId);
+    Optional<PDF> getPDFById(long pdfId);
 }

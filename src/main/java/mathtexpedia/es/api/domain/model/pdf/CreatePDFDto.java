@@ -18,15 +18,15 @@ public class CreatePDFDto {
     @NotBlank
     private String link;
 
-    @Schema(description = "Categoría a la que pertenece el PDF")
+    @Schema(description = "Identificador de la unidad temática a la que pertenece el PDF")
     @NotNull
-    private PDFTag pdfTag;
+    private Long subjectUnitId;
 
     @Schema(description = "Descripción opcional del contenido del PDF")
     private String description;
 
     @Override
     public String toString() {
-        return "PDF [name=" + name + ", link=" + link + ", pdfTag=" + pdfTag + ", description=" + description + "]";
+        return "PDF [name=" + name + ", link=" + link + ", subjectUnitId=" + subjectUnitId + ", description=" + description + "]";
     }
 }
