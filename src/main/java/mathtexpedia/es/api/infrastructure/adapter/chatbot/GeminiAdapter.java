@@ -1,7 +1,9 @@
 package mathtexpedia.es.api.infrastructure.adapter.chatbot;
 
 import mathtexpedia.es.api.domain.exception.PortActionNotPerformedException;
+import mathtexpedia.es.api.domain.model.chatbot.GenerationResult;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +32,7 @@ public class GeminiAdapter implements GenerativeAiPort {
     }
 
     @Override
-    public String generate(String prompt) throws PortActionNotPerformedException {
+    public GenerationResult generate(String prompt) throws PortActionNotPerformedException {
         Exception lastError = null;
 
         for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
@@ -46,7 +48,8 @@ public class GeminiAdapter implements GenerativeAiPort {
                         .body(JsonNode.class);
 
                 keyManager.markCurrentKeyAsSuccess();
-                return extractText(response);
+                assert response != null;
+                return new GenerationResult(extractText(response), extractTotalTokens(response));
 
             } catch (HttpStatusCodeException e) {
                 lastError = e;
@@ -66,13 +69,17 @@ public class GeminiAdapter implements GenerativeAiPort {
 
         throw new PortActionNotPerformedException(
                 "No se pudo obtener respuesta de Gemini tras " + MAX_RETRIES + " intentos: "
-                        + (lastError != null ? lastError.getMessage() : "error desconocido"));
+                        + lastError.getMessage());
     }
 
-    private String extractText(JsonNode response) {
+    private String extractText(@NonNull JsonNode response) {
         return response.path("candidates").path(0)
                 .path("content").path("parts").path(0)
-                .path("text").asText("");
+                .path("text").asString("");
+    }
+
+    private int extractTotalTokens(@NonNull JsonNode response) {
+        return response.path("usageMetadata").path("totalTokenCount").asInt(0);
     }
 
     private void sleep(long millis) {
