@@ -2,6 +2,7 @@ package mathtexpedia.es.api.infrastructure.adapter.auth;
 
 import lombok.RequiredArgsConstructor;
 import mathtexpedia.es.api.domain.exception.AuthenticationException;
+import mathtexpedia.es.api.domain.model.auth.ChangePasswordRequest;
 import mathtexpedia.es.api.domain.model.auth.CreateUserRequest;
 import mathtexpedia.es.api.domain.model.auth.ResetPasswordRequest;
 import mathtexpedia.es.api.domain.model.auth.UserDTO;
@@ -9,6 +10,7 @@ import mathtexpedia.es.api.domain.model.mail.Mail;
 import mathtexpedia.es.api.domain.port.auth.UserManagementPort;
 import mathtexpedia.es.api.domain.port.mail.MailPort;
 import mathtexpedia.es.api.domain.security.UserRole;
+import mathtexpedia.es.api.domain.utils.CriptoUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -27,7 +29,7 @@ public class KeycloakUserManagementAdapter implements UserManagementPort {
 
     private static final Set<String> KNOWN_ROLES = Set.of("ROLE_ADMIN", "ROLE_USER");
     private static final String PASS = "password";
-    private static final String CHANGE_IT= "change-it";
+    private static final int LENGTH = 16;
     public static final String OWN_EMAIL = "noreplay@mathtexpedia.es";
     public static final String SUBJECT = "Reset password";
     public static final String BODY_1 = "<!DOCTYPE html>\n" +
@@ -168,13 +170,13 @@ public class KeycloakUserManagementAdapter implements UserManagementPort {
 
         KeycloakUserRepresentation user = found.getFirst();
 
-        // TODO: En vez de esto, hacer una clase criptoutils que genere strings aleatorios
+        String password = CriptoUtils.generatePassword(LENGTH);
         CredentialRepresentation newCredential = CredentialRepresentation.builder()
-                .type(PASS).temporary(false).value(CHANGE_IT).build();
+                .type(PASS).temporary(false).value(password).build();
 
         try {
             adminClient.resetPassword(realm, token, user.getId(),newCredential);
-            Mail mail = Mail.builder().from(OWN_EMAIL).subject(SUBJECT).body(BODY_1 + CHANGE_IT + BODY_2).build();
+            Mail mail = Mail.builder().from(OWN_EMAIL).subject(SUBJECT).body(BODY_1 + password + BODY_2).build();
             mailPort.sendMail(mail, command.getEmail());
         } catch (Exception e) {
             throw new AuthenticationException("No se pudo restablecer la contraseña", e);
@@ -209,6 +211,27 @@ public class KeycloakUserManagementAdapter implements UserManagementPort {
             users.add(toUserDto(user));
         }
         return users;
+    }
+
+    @Override
+    public void replacePassword(ChangePasswordRequest request, String email) {
+        String token = tokenProvider.getAdminToken();
+
+        List<KeycloakUserRepresentation> found = adminClient.findByEmail(realm, token, email);
+        if (found.isEmpty()) {
+            throw new AuthenticationException("Usuario no encontrado");
+        }
+
+        KeycloakUserRepresentation user = found.getFirst();
+        CredentialRepresentation credential = CredentialRepresentation.builder().type(PASS).temporary(false)
+                .value(request.newPassword).build();
+        try {
+            adminClient.resetPassword(realm, token, user.getId(),credential);
+        } catch (Exception e) {
+            throw new AuthenticationException("No se pudo restablecer la contraseña: ", e);
+        }
+
+
     }
 
     private UserDTO toUserDto(KeycloakUserRepresentation r) {

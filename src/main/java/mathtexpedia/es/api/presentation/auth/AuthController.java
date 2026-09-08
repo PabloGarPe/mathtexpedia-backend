@@ -6,6 +6,7 @@ import mathtexpedia.es.api.domain.port.auth.AuthPort;
 import mathtexpedia.es.api.domain.port.auth.UserManagementPort;
 import mathtexpedia.es.api.infrastructure.application.PublicEndpoint;
 import mathtexpedia.es.api.presentation.GenericController;
+import mathtexpedia.es.api.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.web.exchanges.HttpExchange;
 import org.springframework.http.HttpHeaders;
@@ -22,18 +23,15 @@ public class AuthController extends GenericController implements PublicEndpoint 
 
     // TODO: Cambiar todo lo de los puertos por service
     @Autowired
-    AuthPort authPort;
-
-    @Autowired
-    UserManagementPort userManagementPort;
+    AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<Void> signIn(@RequestBody LoginDTO loginDTO, @CookieValue(name = "refreshToken", required = false) String refreshToken) {
         logger.debug("Request received for logging into mathtexpedia");
 
         AuthResult res = refreshToken != null
-                ? authPort.refreshToken(refreshToken)
-                : authPort.login(loginDTO.getEmail(), loginDTO.getPassword());
+                ? authService.refreshToken(refreshToken)
+                : authService.login(loginDTO.getEmail(), loginDTO.getPassword());
 
         ResponseCookie accessCookie = ResponseCookie.from("jwt", res.getJwt())
                 .httpOnly(true)
@@ -60,14 +58,14 @@ public class AuthController extends GenericController implements PublicEndpoint 
     @PostMapping("/create")
     public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest req) {
         logger.debug("Request received for registering into mathtexpedia");
-        userManagementPort.createUser(req);
+        authService.createUser(req);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @PostMapping("/reset-password")
     public ResponseEntity<Void> resetPassword(@RequestBody ResetPasswordRequest req) {
         logger.debug("Request received for resetting into mathtexpedia");
-        userManagementPort.sendResetPasswordEmail(req);
+        authService.sendResetPasswordEmail(req);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 }
