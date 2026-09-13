@@ -83,7 +83,7 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         SubjectUnit toDelete = subjectUnitDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject unit not found with id: " + id));
 
-        if(pDFDataService.getPDFById(id).isEmpty()) {
+        if(!pDFDataService.getAllForSubjectUnit(id).isEmpty()) {
             throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated PDFs.");
         }
 

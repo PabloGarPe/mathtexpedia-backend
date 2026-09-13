@@ -6,6 +6,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.subject.CreateSubjectDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subject.UpdateSubjectDto;
+import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
@@ -23,10 +24,12 @@ public class SubjectServiceImpl implements SubjectService{
 
     private final SubjectDataService subjectDataService;
     private final SubjectUnitDataService subjectUnitDataService;
+    private final PDFDataService pdfDataService;
 
-    public SubjectServiceImpl(SubjectDataService subjectDataService, SubjectUnitDataService subjectUnitDataService) {
+    public SubjectServiceImpl(SubjectDataService subjectDataService, SubjectUnitDataService subjectUnitDataService, PDFDataService pdfDataService) {
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
+        this.pdfDataService = pdfDataService;
     }
 
     @Override
@@ -71,6 +74,10 @@ public class SubjectServiceImpl implements SubjectService{
 
         if (!subjectUnitDataService.getAllForSubject(id).isEmpty()) {
             throw new MathtexpediaConflictException("Cannot delete subject with id: " + id + " because it has associated subject units.");
+        }
+
+        if (!pdfDataService.getGeneralPDFsForSubject(id).isEmpty()) {
+            throw new MathtexpediaConflictException("Cannot delete subject with id: " + id + " because it has associated PDFs.");
         }
 
         subjectDataService.delete(toDelete);

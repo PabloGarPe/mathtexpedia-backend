@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 
 import java.util.Date;
@@ -49,7 +50,12 @@ public class PDF {
     private String description;
 
     @ManyToOne
-    @JoinColumn(name = "subject_unit_id", nullable = false)
+    @JoinColumn(name ="subject_id", nullable = false)
+    @Schema(description = "Asignatura a la que pertenece el PDF, por ejemplo: Cálculo, Álgebra, etc.")
+    private Subject subject;
+
+    @ManyToOne
+    @JoinColumn(name = "subject_unit_id")
     @Schema(description = "Tema del PDF, por ejemplo: Tema 1, Tema 2, etc. Además, se puede usar para llegar a la asignatura a la que pertenece el PDF")
     private SubjectUnit subjectUnit;
 }

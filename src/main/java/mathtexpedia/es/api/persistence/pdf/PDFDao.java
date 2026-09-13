@@ -45,6 +45,41 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
 
     @Override
     @Transactional(readOnly = true)
+    public List<PDF> getAllForSubject(long subjectId) {
+        logger.trace("Getting PDFs for subject with id {}", subjectId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+
+        cq.select(root).where(cb.equal(root.get("subject").get("id"), subjectId));
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PDF> getGeneralPDFsForSubject(long subjectId) {
+        logger.trace("Getting general PDFs for subject with id {}", subjectId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+
+        cq.select(root).where(cb.equal(
+                root.get("subject").get("id"), subjectId),
+                cb.isNull(root.get("subjectUnit"))
+        );
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PDF> getAllForSubjectUnit(long subjectUnitId) {
         logger.trace("Getting PDFs for subject unit with id {}", subjectUnitId);
 

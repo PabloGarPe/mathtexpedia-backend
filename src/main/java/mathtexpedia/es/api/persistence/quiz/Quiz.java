@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import mathtexpedia.es.api.domain.model.quiz.Difficulty;
+import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 
 import java.util.Date;
@@ -38,7 +39,12 @@ public class Quiz {
     private Date lastTimeEdited;
 
     @ManyToOne
-    @JoinColumn(name = "subject_unit_id", nullable = false)
+    @JoinColumn(name = "subject_id", nullable = false)
+    @Schema(description = "Asignatura a la que pertenece el cuestionario")
+    private Subject subject;
+
+    @ManyToOne
+    @JoinColumn(name = "subject_unit_id")
     @Schema(description = "Tema al que pertenece el cuestionario")
     private SubjectUnit subjectUnit;
 }
