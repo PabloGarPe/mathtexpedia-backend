@@ -47,6 +47,38 @@ public class QuizDao extends GenericJPADao implements QuizDataService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<Quiz> getAllBySubjectId(long subjectId) {
+        logger.trace("Getting all quizzes for subject with id {}", subjectId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Quiz> cq = cb.createQuery(Quiz.class);
+        Root<Quiz> root = cq.from(Quiz.class);
+
+        cq.select(root).where(cb.equal(root.get("subject").get("id"), subjectId));
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Quiz> getAllBySubjectUnitId(long subjectUnitId) {
+        logger.trace("Getting all quizzes for subject unit with id {}", subjectUnitId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Quiz> cq = cb.createQuery(Quiz.class);
+        Root<Quiz> root = cq.from(Quiz.class);
+
+        cq.select(root).where(cb.equal(root.get("subjectUnit").get("id"), subjectUnitId));
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
     @Transactional
     public Quiz create(Quiz quiz) {
         logger.trace("Creating new quiz {}", quiz);
