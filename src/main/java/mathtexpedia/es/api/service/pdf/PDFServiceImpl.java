@@ -37,16 +37,11 @@ public class PDFServiceImpl implements PDFService {
 
     @Override
     public PDF createPDF(CreatePDFDto dto) throws MathtexpediaInvalidException {
-        PDF pdf = new PDF();
-        if(dto.getDescription() != null && !dto.getDescription().isEmpty())
-            pdf.setDescription(dto.getDescription());
-        pdf.setName(dto.getName());
-        pdf.setLink(dto.getLink());
-        pdf.setTag(dto.getPdfTag());
+        PDF pdf = pdfMapper.toEntity(dto);
         pdf.setLastTimeEdited(new Date());
-        return pdfDataService.createPDF(pdf);
 
-    }
+        return pdfDataService.createPDF(pdf);
+}
 
     @Override
     public void deletePDF(String pdfName) throws MathtexpediaInvalidException {
