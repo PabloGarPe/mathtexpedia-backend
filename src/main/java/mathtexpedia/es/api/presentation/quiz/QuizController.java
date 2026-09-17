@@ -41,12 +41,6 @@ public class QuizController extends GenericController {
         this.questionService = questionService;
     }
 
-    @Operation(summary = "Lista todos los cuestionarios")
-    @GetMapping
-    public ResponseEntity<List<QuizDto>> getAllQuizzes() {
-        return ResponseEntity.ok(quizService.getQuizzes());
-    }
-
     @Operation(summary = "Obtiene un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
     @GetMapping("/{id}")
     public ResponseEntity<QuizDto> getQuiz(
