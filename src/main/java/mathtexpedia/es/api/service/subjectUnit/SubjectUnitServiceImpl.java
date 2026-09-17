@@ -7,6 +7,7 @@ import mathtexpedia.es.api.domain.model.subjectUnit.CreateSubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.UpdateSubjectUnitDto;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
+import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
@@ -25,11 +26,18 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
     private final SubjectUnitDataService subjectUnitDataService;
     private final SubjectDataService subjectDataService;
     private final PDFDataService pDFDataService;
+    private final QuizDataService quizDataService;
 
-    public SubjectUnitServiceImpl(SubjectUnitDataService subjectUnitService, SubjectDataService subjectService, PDFDataService pDFDataService) {
+    public SubjectUnitServiceImpl(
+            SubjectUnitDataService subjectUnitService,
+            SubjectDataService subjectService,
+            PDFDataService pDFDataService,
+            QuizDataService quizDataService
+    ) {
         this.subjectUnitDataService = subjectUnitService;
         this.subjectDataService = subjectService;
         this.pDFDataService = pDFDataService;
+        this.quizDataService = quizDataService;
     }
 
     @Override
@@ -83,9 +91,11 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         SubjectUnit toDelete = subjectUnitDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject unit not found with id: " + id));
 
-        if(pDFDataService.getPDFById(id).isEmpty()) {
+        if(!pDFDataService.getAllForSubjectUnit(id).isEmpty())
             throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated PDFs.");
-        }
+
+        if (!quizDataService.getAllBySubjectUnitId(id).isEmpty())
+            throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated quizzes.");
 
         subjectUnitDataService.delete(toDelete);
     }

@@ -20,7 +20,10 @@ public class UpdatePDFDto {
     @Schema(description = "Descripción del contenido del PDF", example = "Este PDF contiene ejercicios resueltos de integrales para el tema 3 del curso de CDI.")
     private String description;
 
-    @Schema(description = "Identificador de la unidad temática a la que pertenece el PDF")
+    @Schema(description = "Identificador de la asignatura a la que pertenece el PDF")
     @NotNull
+    private Long subjectId;
+
+    @Schema(description = "Identificador de la unidad temática a la que pertenece el PDF. En caso de que el PDF sea general para toda la asignatura, este campo puede ser nulo.", nullable = true)
     private Long subjectUnitId;
 }

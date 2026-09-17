@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.subject.CreateSubjectDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subject.UpdateSubjectDto;
@@ -17,6 +19,8 @@ import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.UpdateSubjectUnitDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
+import mathtexpedia.es.api.service.pdf.PDFService;
+import mathtexpedia.es.api.service.quiz.QuizService;
 import mathtexpedia.es.api.service.subject.SubjectService;
 import mathtexpedia.es.api.service.subjectUnit.SubjectUnitService;
 import org.springframework.http.HttpStatus;
@@ -34,10 +38,14 @@ public class SubjectController extends GenericController {
 
     private final SubjectService subjectService;
     private final SubjectUnitService subjectUnitService;
+    private final PDFService pdfService;
+    private final QuizService quizService;
 
-    public SubjectController(SubjectService subjectService, SubjectUnitService subjectUnitService) {
+    public SubjectController(SubjectService subjectService, SubjectUnitService subjectUnitService, PDFService pdfService, QuizService quizService) {
         this.subjectService = subjectService;
         this.subjectUnitService = subjectUnitService;
+        this.pdfService = pdfService;
+        this.quizService = quizService;
     }
 
     @Operation(summary = "Lista todas las asignaturas")
@@ -148,6 +156,56 @@ public class SubjectController extends GenericController {
 
         Optional<SubjectUnitDto> subjectUnit = subjectUnitService.getSubjectUnit(id);
         return subjectUnit.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Obtiene todos los pdfs de una asignatura", description = "Consulta pública, no requiere autenticación")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de pdfs obtenida"),
+            @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura con ese ID")
+    })
+    @GetMapping("/{id}/pdfs")
+    public ResponseEntity<List<PDFDto>> getSubjectPDFs(
+            @Parameter(description = "ID de la asignatura", required = true)
+            @PathVariable long id
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getSubjectPDFs with id {}", id);
+
+        List<PDFDto> pdfs = pdfService.getPDFsBySubject(id);
+        return ResponseEntity.ok(pdfs);
+    }
+
+    @Operation(summary = "Obtiene todos los cuestionarios de una asignatura", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de cuestionarios obtenida"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura con ese ID")
+    })
+    @GetMapping("/{id}/quizzes")
+    public ResponseEntity<List<QuizDto>> getSubjectQuizzes(
+            @Parameter(description = "ID de la asignatura", required = true)
+            @PathVariable long id
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getSubjectQuizzes with id {}", id);
+
+        List<QuizDto> quizzes = quizService.getQuizzesBySubject(id);
+        return ResponseEntity.ok(quizzes);
+    }
+
+    @Operation(summary = "Obtiene todos los cuestionarios de un tema", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de cuestionarios obtenida"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "No existe ningún tema con ese ID")
+    })
+    @GetMapping("/unit/{id}/quizzes")
+    public ResponseEntity<List<QuizDto>> getSubjectUnitQuizzes(
+            @Parameter(description = "ID del tema", required = true)
+            @PathVariable long id
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getSubjectUnitQuizzes with id {}", id);
+
+        List<QuizDto> quizzes = quizService.getQuizzesBySubjectUnit(id);
+        return ResponseEntity.ok(quizzes);
     }
 
     @Operation(summary = "Crea un nuevo tema para una asignatura", description = "Requiere rol ADMIN")

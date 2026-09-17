@@ -9,6 +9,10 @@ public interface PDFDataService {
 
     Optional<PDF> getPDF(String pdfName);
 
+    List<PDF> getAllForSubject(long subjectId);
+
+    List<PDF> getGeneralPDFsForSubject(long subjectId);
+
     List<PDF> getAllForSubjectUnit(long subjectUnitId);
 
     PDF createPDF(PDF pdf);

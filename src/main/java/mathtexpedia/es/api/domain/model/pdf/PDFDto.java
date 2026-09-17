@@ -2,6 +2,7 @@ package mathtexpedia.es.api.domain.model.pdf;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 
 import java.util.Date;
@@ -15,5 +16,6 @@ public class PDFDto {
     private String link;
     private Date lastTimeEdited;
     private String description;
+    private SubjectDto subject;
     private SubjectUnitDto subjectUnit;
 }

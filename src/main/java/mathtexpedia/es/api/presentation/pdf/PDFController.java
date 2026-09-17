@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
@@ -68,7 +69,7 @@ public class PDFController extends GenericController {
     public ResponseEntity<PDFDto> createPDF(
             @Parameter(description = "Datos del PDF a crear", required = true)
             @RequestBody @Valid CreatePDFDto pdf,
-            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaConflictException, MathtexpediaNotFoundException {
+            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaConflictException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.debug("Called recieve to create PDF {}", pdf);
 
         checkIfAdmin(user);
@@ -81,6 +82,7 @@ public class PDFController extends GenericController {
     @Operation(summary = "Borra un PDF por su nombre", description = "Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "PDF borrado"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos"),
             @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN"),
             @ApiResponse(responseCode = "404", description = "No existe ningún PDF con ese nombre")
     })
@@ -106,13 +108,13 @@ public class PDFController extends GenericController {
             @ApiResponse(responseCode = "404", description = "No existe ningún PDF con ese id"),
             @ApiResponse(responseCode = "409", description = "Ya existe un PDF con ese nombre")
     })
-    @PatchMapping("/update")
+    @PutMapping("/update/{pdfId}")
     public ResponseEntity<PDFDto> updatePDF(
             @Parameter(description = "Id del PDF a actualizar", required = true)
-            @RequestParam long pdfId,
+            @PathVariable long pdfId,
             @Parameter(description = "Datos del PDF a actualizar", required = true)
             @RequestBody @Valid UpdatePDFDto pdf,
-            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaConflictException, MathtexpediaNotFoundException {
+            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaConflictException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.debug("Called recieve to update PDF {}", pdf);
 
         checkIfAdmin(user);

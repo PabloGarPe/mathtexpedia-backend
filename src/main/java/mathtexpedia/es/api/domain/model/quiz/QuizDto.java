@@ -1,4 +1,4 @@
-package mathtexpedia.es.api.domain.model.pdf;
+package mathtexpedia.es.api.domain.model.quiz;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,11 +9,13 @@ import java.util.Date;
 
 @Data
 @AllArgsConstructor
-public class PDFNoLinkDto {
+public class QuizDto {
+
     private Long id;
     private String name;
-    private Date lastTimeEdited;
     private String description;
+    private Difficulty difficulty;
+    private Date lastTimeEdited;
     private SubjectDto subject;
     private SubjectUnitDto subjectUnit;
 }
