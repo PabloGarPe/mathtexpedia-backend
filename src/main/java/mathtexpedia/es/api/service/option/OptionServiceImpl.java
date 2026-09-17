@@ -24,13 +24,16 @@ public class OptionServiceImpl implements OptionService {
 
     private final OptionDataService optionDataService;
     private final QuestionDataService questionDataService;
+    private final OptionMapper optionMapper;
 
     public OptionServiceImpl(
             OptionDataService optionDataService,
-            QuestionDataService questionDataService
+            QuestionDataService questionDataService,
+            OptionMapper optionMapper
     ) {
         this.optionDataService = optionDataService;
         this.questionDataService = questionDataService;
+        this.optionMapper = optionMapper;
     }
 
 
@@ -43,7 +46,7 @@ public class OptionServiceImpl implements OptionService {
 
         return optionDataService.getOptionsByQuestionId(questionId)
                 .stream()
-                .map(this::toDto)
+                .map(optionMapper::toDto)
                 .toList();
     }
 
@@ -52,23 +55,20 @@ public class OptionServiceImpl implements OptionService {
         logger.info("Fetching option with id: {}", id);
 
         Optional<Option> option = optionDataService.getOptionById(id);
-        return option.map(this::toDto);
+        return option.map(optionMapper::toDto);
     }
 
     @Override
     public OptionDto create(CreateOptionDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Creating option with text: {}", dto.getText());
 
-        Option option = new Option();
-        option.setText(dto.getText());
-        option.setCorrect(dto.isCorrect());
-        option.setPosition(dto.getPosition());
+        Option option = optionMapper.toEntity(dto);
 
         resolveQuestion(option, dto.getQuestionId());
 
         try {
             Option created = optionDataService.create(option);
-            return toDto(created);
+            return optionMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating option: " + e.getMessage(), e);
         }
@@ -81,15 +81,13 @@ public class OptionServiceImpl implements OptionService {
         Option toUpdate = optionDataService.getOptionById(optionId)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Option not found with id: " + optionId));
 
-        toUpdate.setText(dto.getText());
-        toUpdate.setCorrect(dto.isCorrect());
-        toUpdate.setPosition(dto.getPosition());
+        optionMapper.updateEntity(toUpdate, dto);
 
         resolveQuestion(toUpdate, dto.getQuestionId());
 
         try {
             Option updated = optionDataService.update(toUpdate);
-            return toDto(updated);
+            return optionMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating option: " + e.getMessage(), e);
         }
@@ -112,15 +110,5 @@ public class OptionServiceImpl implements OptionService {
             throw new MathtexpediaNotFoundException("Question not found with id: " + questionId);
 
         target.setQuestion(question.get());
-    }
-
-    private OptionDto toDto(Option option) {
-        return new OptionDto(
-                option.getId(),
-                option.getText(),
-                option.isCorrect(),
-                option.getPosition(),
-                option.getQuestion().getId()
-        );
     }
 }

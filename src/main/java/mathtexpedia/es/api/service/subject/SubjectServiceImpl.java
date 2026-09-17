@@ -27,17 +27,20 @@ public class SubjectServiceImpl implements SubjectService{
     private final SubjectUnitDataService subjectUnitDataService;
     private final PDFDataService pdfDataService;
     private final QuizDataService quizDataService;
+    private final SubjectMapper subjectMapper;
 
     public SubjectServiceImpl(
             SubjectDataService subjectDataService,
             SubjectUnitDataService subjectUnitDataService,
             PDFDataService pdfDataService,
-            QuizDataService quizDataService
+            QuizDataService quizDataService,
+            SubjectMapper subjectMapper
     ) {
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.pdfDataService = pdfDataService;
         this.quizDataService = quizDataService;
+        this.subjectMapper = subjectMapper;
     }
 
     @Override
@@ -46,7 +49,7 @@ public class SubjectServiceImpl implements SubjectService{
 
         return subjectDataService.getAll()
                 .stream()
-                .map(this::toDto)
+                .map(subjectMapper::toDto)
                 .toList();
     }
 
@@ -55,19 +58,17 @@ public class SubjectServiceImpl implements SubjectService{
         logger.info("Fetching subject with id: {}", id);
 
         Optional<Subject> subject = subjectDataService.getById(id);
-        return subject.map(this::toDto);
+        return subject.map(subjectMapper::toDto);
     }
 
     @Override
     public SubjectDto create(CreateSubjectDto dto) throws MathtexpediaConflictException {
         logger.info("Creating new subject with name: {}", dto.getName());
 
-        Subject subject = new Subject();
-        subject.setName(dto.getName());
-        subject.setDescription(dto.getDescription());
+        Subject subject = subjectMapper.toEntity(dto);
         try {
             Subject created = subjectDataService.create(subject);
-            return toDto(created);
+            return subjectMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating subject: " + e.getMessage(), e);
         }
@@ -98,17 +99,12 @@ public class SubjectServiceImpl implements SubjectService{
 
         Subject toUpdate = subjectDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject not found with id: " + id));
-        toUpdate.setName(dto.getName());
-        toUpdate.setDescription(dto.getDescription());
+        subjectMapper.updateEntity(toUpdate, dto);
         try {
             Subject updated = subjectDataService.update(toUpdate);
-            return toDto(updated);
+            return subjectMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating subject: " + e.getMessage(), e);
         }
-    }
-
-    private SubjectDto toDto(Subject subject) {
-        return new SubjectDto(subject.getId(), subject.getName(), subject.getDescription());
     }
 }

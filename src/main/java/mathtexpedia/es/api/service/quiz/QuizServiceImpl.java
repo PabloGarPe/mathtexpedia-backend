@@ -6,7 +6,6 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
-import mathtexpedia.es.api.domain.model.option.OptionForAttemptDto;
 import mathtexpedia.es.api.domain.model.question.CreateQuestionDto;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
 import mathtexpedia.es.api.domain.model.question.QuestionExportableDto;
@@ -16,8 +15,6 @@ import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
-import mathtexpedia.es.api.domain.model.subject.SubjectDto;
-import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.persistence.option.Option;
 import mathtexpedia.es.api.persistence.option.OptionDataService;
 import mathtexpedia.es.api.persistence.question.Question;
@@ -29,6 +26,7 @@ import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import mathtexpedia.es.api.service.option.OptionService;
+import mathtexpedia.es.api.service.question.QuestionMapper;
 import mathtexpedia.es.api.service.question.QuestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +51,8 @@ public class QuizServiceImpl implements QuizService {
     private final OptionService optionService;
     private final QuestionDataService questionDataService;
     private final OptionDataService optionDataService;
+    private final QuizMapper quizMapper;
+    private final QuestionMapper questionMapper;
 
     public QuizServiceImpl(
             QuizDataService quizDataService,
@@ -61,7 +61,9 @@ public class QuizServiceImpl implements QuizService {
             QuestionService questionService,
             OptionService optionService,
             QuestionDataService questionDataService,
-            OptionDataService optionDataService) {
+            OptionDataService optionDataService,
+            QuizMapper quizMapper,
+            QuestionMapper questionMapper) {
         this.quizDataService = quizDataService;
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
@@ -69,6 +71,8 @@ public class QuizServiceImpl implements QuizService {
         this.optionService = optionService;
         this.questionDataService = questionDataService;
         this.optionDataService = optionDataService;
+        this.quizMapper = quizMapper;
+        this.questionMapper = questionMapper;
     }
 
     @Override
@@ -77,7 +81,7 @@ public class QuizServiceImpl implements QuizService {
 
         return quizDataService.getAll()
                 .stream()
-                .map(this::toDto)
+                .map(quizMapper::toDto)
                 .toList();
     }
 
@@ -86,7 +90,7 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Fetching quiz with id: {}", id);
 
         Optional<Quiz> quiz = quizDataService.getById(id);
-        return quiz.map(this::toDto);
+        return quiz.map(quizMapper::toDto);
     }
 
     @Override
@@ -98,7 +102,7 @@ public class QuizServiceImpl implements QuizService {
 
         return quizDataService.getAllBySubjectUnitId(subjectUnitId)
                 .stream()
-                .map(this::toDto)
+                .map(quizMapper::toDto)
                 .toList();
     }
 
@@ -111,7 +115,7 @@ public class QuizServiceImpl implements QuizService {
 
         return quizDataService.getAllBySubjectId(subjectId)
                 .stream()
-                .map(this::toDto)
+                .map(quizMapper::toDto)
                 .toList();
     }
 
@@ -119,16 +123,14 @@ public class QuizServiceImpl implements QuizService {
     public QuizDto create(CreateQuizDto dto) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Creating new quiz with name: {}", dto.getName());
 
-        Quiz quiz = new Quiz();
-        quiz.setName(dto.getName());
-        quiz.setDescription(dto.getDescription());
+        Quiz quiz = quizMapper.toEntity(dto);
         quiz.setLastTimeEdited(new Date());
 
         resolveSubjectAndUnit(quiz, dto.getSubjectId(), dto.getSubjectUnitId());
 
         try {
             Quiz created = quizDataService.create(quiz);
-            return toDto(created);
+            return quizMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating Quiz: " + e.getMessage(), e);
         }
@@ -146,16 +148,10 @@ public class QuizServiceImpl implements QuizService {
         for (Question question : questionDataService.getAllQuestionsByQuizId(quizId)) {
             List<Option> options = optionDataService.getOptionsByQuestionId(question.getId());
 
-            questionsForQuiz.add(buildQuestionForAttempt(question, options));
+            questionsForQuiz.add(questionMapper.toAttemptDto(question, options));
         }
 
-        return new QuizForAttemptDto(
-                quiz.getId(),
-                quiz.getName(),
-                quiz.getDescription(),
-                quiz.getDifficulty(),
-                questionsForQuiz
-        );
+        return quizMapper.toAttemptDto(quiz, questionsForQuiz);
     }
 
     @Override
@@ -165,15 +161,14 @@ public class QuizServiceImpl implements QuizService {
         Quiz toUpdate = quizDataService.getById(quizId)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
 
-        toUpdate.setName(dto.getName());
-        toUpdate.setDescription(dto.getDescription());
+        quizMapper.updateEntity(toUpdate, dto);
         toUpdate.setLastTimeEdited(new Date());
 
         resolveSubjectAndUnit(toUpdate, dto.getSubjectId(), dto.getSubjectUnitId());
 
         try {
             Quiz updated = quizDataService.update(toUpdate);
-            return toDto(updated);
+            return quizMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating Quiz: " + e.getMessage(), e);
         }
@@ -207,15 +202,10 @@ public class QuizServiceImpl implements QuizService {
         for (Question question : questionDataService.getAllQuestionsByQuizId(quizId)) {
             List<Option> options = optionDataService.getOptionsByQuestionId(question.getId());
 
-            questionsForQuiz.add(buildQuestionForExport(question, options));
+            questionsForQuiz.add(questionMapper.toExportableDto(question, options));
         }
 
-        return new QuizExportableDto(
-                quiz.getName(),
-                quiz.getDescription(),
-                quiz.getDifficulty(),
-                questionsForQuiz
-        );
+        return quizMapper.toExportableDto(quiz, questionsForQuiz);
     }
 
     @Override
@@ -275,66 +265,5 @@ public class QuizServiceImpl implements QuizService {
         } else {
             target.setSubjectUnit(null);
         }
-    }
-
-    private QuestionForAttemptDto buildQuestionForAttempt(Question question, List<Option> options) {
-        List<OptionForAttemptDto> optionsForAttempt = new ArrayList<>();
-
-        for (Option option : options) {
-            OptionForAttemptDto optionForAttempt = new OptionForAttemptDto(
-                    option.getId(),
-                    option.getText(),
-                    option.getPosition()
-            );
-            optionsForAttempt.add(optionForAttempt);
-        }
-
-        return new QuestionForAttemptDto(
-                question.getId(),
-                question.getText(),
-                question.getType(),
-                question.getPosition(),
-                optionsForAttempt
-        );
-    }
-
-    private QuestionExportableDto buildQuestionForExport(Question question, List<Option> options) {
-        List<OptionExportableDto> optionsForExport = new ArrayList<>();
-
-        for (Option option : options) {
-            optionsForExport.add(new OptionExportableDto(
-                    option.getText(),
-                    option.isCorrect(),
-                    option.getPosition()
-            ));
-        }
-
-        return new QuestionExportableDto(
-                question.getText(),
-                question.getPosition(),
-                question.getType(),
-                question.getExplanation(),
-                optionsForExport
-        );
-    }
-
-    private QuizDto toDto(Quiz quiz) {
-        return new QuizDto(
-                quiz.getId(),
-                quiz.getName(),
-                quiz.getDescription(),
-                quiz.getDifficulty(),
-                quiz.getLastTimeEdited(),
-                new SubjectDto(
-                        quiz.getSubject().getId(),
-                        quiz.getSubject().getName(),
-                        quiz.getSubject().getDescription()
-                ),
-                quiz.getSubjectUnit() != null ? new SubjectUnitDto(
-                        quiz.getSubjectUnit().getId(),
-                        quiz.getSubjectUnit().getName(),
-                        quiz.getSubjectUnit().getPosition()
-                ) : null
-        );
     }
 }

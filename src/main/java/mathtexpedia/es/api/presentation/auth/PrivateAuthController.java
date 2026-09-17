@@ -4,7 +4,6 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.auth.ChangePasswordRequest;
 import mathtexpedia.es.api.domain.model.auth.UserDTO;
-import mathtexpedia.es.api.domain.port.auth.UserManagementPort;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
 import mathtexpedia.es.api.service.auth.AuthService;
@@ -38,7 +37,7 @@ public class PrivateAuthController extends GenericController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest, @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException {
+    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest, @AuthenticationPrincipal UserProfile user) throws MathtexpediaInvalidException {
         logger.debug("Changing password {}", changePasswordRequest);
         authService.changePassword(changePasswordRequest, user);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);

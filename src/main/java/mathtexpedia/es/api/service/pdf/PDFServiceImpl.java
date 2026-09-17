@@ -8,8 +8,6 @@ import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
-import mathtexpedia.es.api.domain.model.subject.SubjectDto;
-import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
@@ -53,7 +51,7 @@ public class PDFServiceImpl implements PDFService {
 
         return pdfDataService.getAll()
                 .stream()
-                .map(this::toDtoWithoutLink)
+                .map(pdfMapper::toDtoWithoutLink)
                 .toList();
     }
 
@@ -64,7 +62,7 @@ public class PDFServiceImpl implements PDFService {
 
         return pdfDataService.getAll()
                 .stream()
-                .map(this::toDto)
+                .map(pdfMapper::toDto)
                 .toList();
     }
 
@@ -73,7 +71,7 @@ public class PDFServiceImpl implements PDFService {
         logger.info("Fetching PDF with name: {}", pdfName);
 
         Optional<PDF> pdf = pdfDataService.getPDF(pdfName);
-        return pdf.map(this::toDto);
+        return pdf.map(pdfMapper::toDto);
     }
 
     @Override
@@ -85,7 +83,7 @@ public class PDFServiceImpl implements PDFService {
 
         return pdfDataService.getAllForSubjectUnit(subjectUnitId)
                 .stream()
-                .map(this::toDto)
+                .map(pdfMapper::toDto)
                 .toList();
     }
 
@@ -98,7 +96,7 @@ public class PDFServiceImpl implements PDFService {
 
         return pdfDataService.getAllForSubject(subjectId)
                 .stream()
-                .map(this::toDto)
+                .map(pdfMapper::toDto)
                 .toList();
     }
 
@@ -106,17 +104,14 @@ public class PDFServiceImpl implements PDFService {
     public PDFDto createPDF(CreatePDFDto dto) throws MathtexpediaConflictException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.info("Creating new PDF with name: {}", dto.getName());
 
-        PDF pdf = new PDF();
-        pdf.setName(dto.getName());
-        pdf.setLink(dto.getLink());
-        pdf.setDescription(dto.getDescription());
+        PDF pdf = pdfMapper.toEntity(dto);
         pdf.setLastTimeEdited(new Date());
 
         resolveSubjectAndUnit(pdf, dto.getSubjectId(), dto.getSubjectUnitId());
 
         try {
             PDF created = pdfDataService.createPDF(pdf);
-            return toDto(created);
+            return pdfMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating PDF: " + e.getMessage(), e);
         }
@@ -139,16 +134,14 @@ public class PDFServiceImpl implements PDFService {
         PDF toUpdate = pdfDataService.getPDFById(pdfId)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("PDF not found with id: " + pdfId));
 
-        toUpdate.setName(pdf.getName());
-        toUpdate.setDescription(pdf.getDescription());
-        toUpdate.setLink(pdf.getLink());
+        pdfMapper.updateEntity(toUpdate, pdf);
         toUpdate.setLastTimeEdited(new Date());
 
         resolveSubjectAndUnit(toUpdate, pdf.getSubjectId(), pdf.getSubjectUnitId());
 
         try {
             PDF updated = pdfDataService.updatePDF(toUpdate);
-            return toDto(updated);
+            return pdfMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating PDF: " + e.getMessage(), e);
         }
@@ -172,45 +165,5 @@ public class PDFServiceImpl implements PDFService {
         } else {
             target.setSubjectUnit(null);
         }
-    }
-
-
-    private PDFDto toDto(PDF pdf) {
-        return new PDFDto(
-                pdf.getId(),
-                pdf.getName(),
-                pdf.getLink(),
-                pdf.getLastTimeEdited(),
-                pdf.getDescription(),
-                new SubjectDto(
-                        pdf.getSubject().getId(),
-                        pdf.getSubject().getName(),
-                        pdf.getSubject().getDescription()
-                ),
-                pdf.getSubjectUnit() != null ? new SubjectUnitDto(
-                        pdf.getSubjectUnit().getId(),
-                        pdf.getSubjectUnit().getName(),
-                        pdf.getSubjectUnit().getPosition()
-                ) : null
-        );
-    }
-
-    private PDFNoLinkDto toDtoWithoutLink(PDF pdf) {
-        return new PDFNoLinkDto(
-                pdf.getId(),
-                pdf.getName(),
-                pdf.getLastTimeEdited(),
-                pdf.getDescription(),
-                new SubjectDto(
-                        pdf.getSubject().getId(),
-                        pdf.getSubject().getName(),
-                        pdf.getSubject().getDescription()
-                ),
-                pdf.getSubjectUnit() != null ? new SubjectUnitDto(
-                        pdf.getSubjectUnit().getId(),
-                        pdf.getSubjectUnit().getName(),
-                        pdf.getSubjectUnit().getPosition()
-                ) : null
-        );
     }
 }

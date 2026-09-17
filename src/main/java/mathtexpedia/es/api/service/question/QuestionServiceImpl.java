@@ -27,15 +27,18 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionDataService questionDataService;
     private final QuizDataService quizDataService;
     private final OptionDataService optionDataService;
+    private final QuestionMapper questionMapper;
 
     public QuestionServiceImpl(
             QuestionDataService questionDataService,
             QuizDataService quizDataService,
-            OptionDataService optionDataService
+            OptionDataService optionDataService,
+            QuestionMapper questionMapper
     ) {
         this.questionDataService = questionDataService;
         this.quizDataService = quizDataService;
         this.optionDataService = optionDataService;
+        this.questionMapper = questionMapper;
     }
 
     @Override
@@ -47,7 +50,7 @@ public class QuestionServiceImpl implements QuestionService {
 
         return questionDataService.getAllQuestionsByQuizId(quizId)
                 .stream()
-                .map(this::toDto)
+                .map(questionMapper::toDto)
                 .toList();
     }
 
@@ -56,24 +59,20 @@ public class QuestionServiceImpl implements QuestionService {
         logger.info("Fetching question with id: {}", id);
 
         Optional<Question> question = questionDataService.getQuestionById(id);
-        return question.map(this::toDto);
+        return question.map(questionMapper::toDto);
     }
 
     @Override
     public QuestionDto create(CreateQuestionDto dto) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Creating new question with text: {}", dto.getText());
 
-        Question question = new Question();
-        question.setText(dto.getText());
-        question.setExplanation(dto.getExplanation());
-        question.setType(dto.getType());
-        question.setPosition(dto.getPosition());
+        Question question = questionMapper.toEntity(dto);
 
         resolveQuiz(question, dto.getQuizId());
 
         try {
             Question created = questionDataService.create(question);
-            return toDto(created);
+            return questionMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating question: " + e.getMessage(), e);
         }
@@ -86,16 +85,13 @@ public class QuestionServiceImpl implements QuestionService {
         Question toUpdate = questionDataService.getQuestionById(questionId)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Question not found with id: " + questionId));
 
-        toUpdate.setText(dto.getText());
-        toUpdate.setExplanation(dto.getExplanation());
-        toUpdate.setType(dto.getType());
-        toUpdate.setPosition(dto.getPosition());
+        questionMapper.updateEntity(toUpdate, dto);
 
         resolveQuiz(toUpdate, dto.getQuizId());
 
         try {
             Question updated = questionDataService.update(toUpdate);
-            return toDto(updated);
+            return questionMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating question: " + e.getMessage(), e);
         }
@@ -122,16 +118,5 @@ public class QuestionServiceImpl implements QuestionService {
             throw new MathtexpediaNotFoundException("Quiz not found with id: " + quizId);
 
         target.setQuiz(quiz.get());
-    }
-
-    private QuestionDto toDto(Question question) {
-        return new QuestionDto(
-                question.getId(),
-                question.getText(),
-                question.getType(),
-                question.getExplanation(),
-                question.getPosition(),
-                question.getQuiz().getId()
-        );
     }
 }

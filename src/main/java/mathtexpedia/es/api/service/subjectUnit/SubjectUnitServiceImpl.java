@@ -27,17 +27,20 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
     private final SubjectDataService subjectDataService;
     private final PDFDataService pDFDataService;
     private final QuizDataService quizDataService;
+    private final SubjectUnitMapper subjectUnitMapper;
 
     public SubjectUnitServiceImpl(
             SubjectUnitDataService subjectUnitService,
             SubjectDataService subjectService,
             PDFDataService pDFDataService,
-            QuizDataService quizDataService
+            QuizDataService quizDataService,
+            SubjectUnitMapper subjectUnitMapper
     ) {
         this.subjectUnitDataService = subjectUnitService;
         this.subjectDataService = subjectService;
         this.pDFDataService = pDFDataService;
         this.quizDataService = quizDataService;
+        this.subjectUnitMapper = subjectUnitMapper;
     }
 
     @Override
@@ -50,7 +53,7 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
 
         return subjectUnitDataService.getAllForSubject(subjectId)
                 .stream()
-                .map(this::toDto)
+                .map(subjectUnitMapper::toDto)
                 .toList();
     }
 
@@ -59,16 +62,14 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         logger.info("Getting subject unit with id: {}", id);
 
         Optional<SubjectUnit> subjectUnit = subjectUnitDataService.getById(id);
-        return subjectUnit.map(this::toDto);
+        return subjectUnit.map(subjectUnitMapper::toDto);
     }
 
     @Override
     public SubjectUnitDto create(CreateSubjectUnitDto dto, long subjectId) throws MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Creating subject unit: {}", dto);
 
-        SubjectUnit subjectUnit = new SubjectUnit();
-        subjectUnit.setName(dto.getName());
-        subjectUnit.setPosition(dto.getPosition());
+        SubjectUnit subjectUnit = subjectUnitMapper.toEntity(dto);
 
         Optional<Subject> subject = subjectDataService.getById(subjectId);
         if (subject.isEmpty()) {
@@ -78,7 +79,7 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         subjectUnit.setSubject(subject.get());
         try {
             SubjectUnit created = subjectUnitDataService.create(subjectUnit);
-            return toDto(created);
+            return subjectUnitMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating subject unit: " + e.getMessage(), e);
         }
@@ -107,17 +108,12 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         SubjectUnit toUpdate = subjectUnitDataService.getById(id)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Subject unit not found with id: " + id));
 
-        toUpdate.setName(dto.getName());
-        toUpdate.setPosition(dto.getPosition());
+        subjectUnitMapper.updateEntity(toUpdate, dto);
         try {
             SubjectUnit updated = subjectUnitDataService.update(toUpdate);
-            return toDto(updated);
+            return subjectUnitMapper.toDto(updated);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating subject unit: " + e.getMessage(), e);
         }
-    }
-
-    private SubjectUnitDto toDto(SubjectUnit subjectUnit) {
-        return new SubjectUnitDto(subjectUnit.getId(), subjectUnit.getName(), subjectUnit.getPosition());
     }
 }
