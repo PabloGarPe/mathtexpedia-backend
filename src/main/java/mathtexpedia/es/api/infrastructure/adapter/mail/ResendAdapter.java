@@ -20,6 +20,11 @@ public class ResendAdapter implements MailPort {
 
     @Override
     public void sendMail(Mail mail) throws PortActionNotPerformedException {
+        sendMail(mail, TO_EMAIL);
+    }
+
+    @Override
+    public void sendMail(Mail mail, String to) throws PortActionNotPerformedException {
         Resend resend = new Resend(apiKey);
 
         CreateEmailOptions params;
@@ -27,7 +32,7 @@ public class ResendAdapter implements MailPort {
         if (mail.getCc() != null && !mail.getCc().isEmpty())
             params = CreateEmailOptions.builder()
                     .from(FROM_EMAIL)
-                    .to(TO_EMAIL)
+                    .to(to)
                     .addCc(mail.getFrom())
                     .addCc(mail.getCc())
                     .subject(mail.getSubject())
@@ -35,7 +40,7 @@ public class ResendAdapter implements MailPort {
         else
             params = CreateEmailOptions.builder()
                     .from(FROM_EMAIL)
-                    .to(TO_EMAIL)
+                    .to(to)
                     .addCc(mail.getFrom())
                     .subject(mail.getSubject())
                     .html(mail.getBody()).build();

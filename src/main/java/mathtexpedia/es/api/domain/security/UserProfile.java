@@ -11,9 +11,11 @@ public class UserProfile {
 
     @Schema(description = "Rol del usuario")
     private final UserRole role;
+    private final String id;
 
-    public UserProfile(String email, String role) {
+    public UserProfile(String email, String role, String id) {
         this.email = email;
+        this.id = id;
         if (role.equalsIgnoreCase("ROLE_ADMIN")) {
             this.role = UserRole.ADMIN;
         } else {

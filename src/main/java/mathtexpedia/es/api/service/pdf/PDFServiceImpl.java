@@ -33,15 +33,18 @@ public class PDFServiceImpl implements PDFService {
     private final PDFDataService pdfDataService;
     private final SubjectUnitDataService subjectUnitDataService;
     private final SubjectDataService subjectDataService;
+    private final PDFMapper pdfMapper;
 
     public PDFServiceImpl(
             PDFDataService pdfDataService,
             SubjectUnitDataService subjectUnitDataService,
-            SubjectDataService subjectDataService
+            SubjectDataService subjectDataService,
+            PDFMapper pdfMapper
     ) {
         this.pdfDataService = pdfDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.subjectDataService = subjectDataService;
+        this.pdfMapper = pdfMapper;
     }
 
     @Override
@@ -53,6 +56,7 @@ public class PDFServiceImpl implements PDFService {
                 .map(this::toDtoWithoutLink)
                 .toList();
     }
+
 
     @Override
     public List<PDFDto> getPDFs() {
