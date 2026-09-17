@@ -81,8 +81,11 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) {
+    public List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException {
         logger.info("Fetching quizzes for subject unit with id: {}", subjectUnitId);
+
+        if (subjectUnitDataService.getById(subjectUnitId).isEmpty())
+            throw new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId);
 
         return quizDataService.getAllBySubjectUnitId(subjectUnitId)
                 .stream()
@@ -91,8 +94,11 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public List<QuizDto> getQuizzesBySubject(long subjectId) {
+    public List<QuizDto> getQuizzesBySubject(long subjectId) throws MathtexpediaNotFoundException {
         logger.info("Fetching quizzes for subject with id: {}", subjectId);
+
+        if (subjectDataService.getById(subjectId).isEmpty())
+            throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
 
         return quizDataService.getAllBySubjectId(subjectId)
                 .stream()

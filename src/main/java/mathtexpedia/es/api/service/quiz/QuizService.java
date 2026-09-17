@@ -17,9 +17,9 @@ public interface QuizService {
 
     Optional<QuizDto> getQuiz(long id);
 
-    List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId);
+    List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
 
-    List<QuizDto> getQuizzesBySubject(long subjectId);
+    List<QuizDto> getQuizzesBySubject(long subjectId) throws MathtexpediaNotFoundException;
 
     QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException;
 
