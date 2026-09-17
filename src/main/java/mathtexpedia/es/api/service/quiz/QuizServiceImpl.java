@@ -4,11 +4,16 @@ import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
+import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
 import mathtexpedia.es.api.domain.model.option.OptionForAttemptDto;
+import mathtexpedia.es.api.domain.model.question.CreateQuestionDto;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
+import mathtexpedia.es.api.domain.model.question.QuestionExportableDto;
 import mathtexpedia.es.api.domain.model.question.QuestionForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
@@ -23,6 +28,7 @@ import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
+import mathtexpedia.es.api.service.option.OptionService;
 import mathtexpedia.es.api.service.question.QuestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +50,7 @@ public class QuizServiceImpl implements QuizService {
     private final SubjectDataService subjectDataService;
     private final SubjectUnitDataService subjectUnitDataService;
     private final QuestionService questionService;
+    private final OptionService optionService;
     private final QuestionDataService questionDataService;
     private final OptionDataService optionDataService;
 
@@ -52,12 +59,14 @@ public class QuizServiceImpl implements QuizService {
             SubjectDataService subjectDataService,
             SubjectUnitDataService subjectUnitDataService,
             QuestionService questionService,
+            OptionService optionService,
             QuestionDataService questionDataService,
             OptionDataService optionDataService) {
         this.quizDataService = quizDataService;
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.questionService = questionService;
+        this.optionService = optionService;
         this.questionDataService = questionDataService;
         this.optionDataService = optionDataService;
     }
@@ -186,6 +195,68 @@ public class QuizServiceImpl implements QuizService {
 
     }
 
+    @Override
+    public QuizExportableDto exportQuiz(long quizId) throws MathtexpediaNotFoundException {
+        logger.info("Exporting quiz with id: {}", quizId);
+
+        Quiz quiz = quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+
+        List<QuestionExportableDto> questionsForQuiz = new ArrayList<>();
+
+        for (Question question : questionDataService.getAllQuestionsByQuizId(quizId)) {
+            List<Option> options = optionDataService.getOptionsByQuestionId(question.getId());
+
+            questionsForQuiz.add(buildQuestionForExport(question, options));
+        }
+
+        return new QuizExportableDto(
+                quiz.getName(),
+                quiz.getDescription(),
+                quiz.getDifficulty(),
+                questionsForQuiz
+        );
+    }
+
+    @Override
+    @Transactional
+    public QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId)
+            throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+        logger.info("Importing quiz with name: {}", dto.getName());
+
+        CreateQuizDto createQuizDto = new CreateQuizDto();
+        createQuizDto.setName(dto.getName());
+        createQuizDto.setDescription(dto.getDescription());
+        createQuizDto.setDifficulty(dto.getDifficulty());
+        createQuizDto.setSubjectId(subjectId);
+        createQuizDto.setSubjectUnitId(subjectUnitId);
+
+        QuizDto createdQuiz = create(createQuizDto);
+
+        for (QuestionExportableDto questionDto : dto.getQuestions()) {
+            CreateQuestionDto createQuestionDto = new CreateQuestionDto();
+            createQuestionDto.setText(questionDto.getText());
+            createQuestionDto.setType(questionDto.getType());
+            createQuestionDto.setPosition(questionDto.getPosition());
+            createQuestionDto.setExplanation(questionDto.getExplanation());
+            createQuestionDto.setQuizId(createdQuiz.getId());
+
+            QuestionDto createdQuestion = questionService.create(createQuestionDto);
+
+            for (OptionExportableDto optionDto : questionDto.getOptions()) {
+                CreateOptionDto createOptionDto = new CreateOptionDto();
+                createOptionDto.setText(optionDto.getText());
+                createOptionDto.setCorrect(optionDto.isCorrect());
+                createOptionDto.setPosition(optionDto.getPosition());
+                createOptionDto.setQuestionId(createdQuestion.getId());
+
+                optionService.create(createOptionDto);
+            }
+        }
+
+        return createdQuiz;
+    }
+
     private void resolveSubjectAndUnit(Quiz target, Long subjectId, Long subjectUnitId)
             throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
         Subject subject = subjectDataService.getById(subjectId)
@@ -224,6 +295,26 @@ public class QuizServiceImpl implements QuizService {
                 question.getType(),
                 question.getPosition(),
                 optionsForAttempt
+        );
+    }
+
+    private QuestionExportableDto buildQuestionForExport(Question question, List<Option> options) {
+        List<OptionExportableDto> optionsForExport = new ArrayList<>();
+
+        for (Option option : options) {
+            optionsForExport.add(new OptionExportableDto(
+                    option.getText(),
+                    option.isCorrect(),
+                    option.getPosition()
+            ));
+        }
+
+        return new QuestionExportableDto(
+                question.getText(),
+                question.getPosition(),
+                question.getType(),
+                question.getExplanation(),
+                optionsForExport
         );
     }
 
