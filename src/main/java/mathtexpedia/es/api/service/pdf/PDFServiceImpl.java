@@ -17,6 +17,9 @@ public class PDFServiceImpl implements PDFService {
     @Autowired
     private PDFDataService pdfDataService;
 
+    @Autowired
+    private PDFMapper pdfMapper;
+
     @Override
     public List<PDF>  getPDFWithoutLink() {
         return pdfDataService.getPDFWithNoLink();
