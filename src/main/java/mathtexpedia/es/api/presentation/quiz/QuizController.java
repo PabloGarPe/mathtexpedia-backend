@@ -13,6 +13,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
@@ -156,5 +157,52 @@ public class QuizController extends GenericController {
 
         QuizForAttemptDto quizForAttempt = quizService.getQuizForAttempt(id);
         return ResponseEntity.ok(quizForAttempt);
+    }
+
+    @Operation(summary = "Exporta un cuestionario completo a JSON", description = "Requiere rol ADMIN")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cuestionario exportado correctamente"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    })
+    @GetMapping("/{id}/export")
+    public ResponseEntity<QuizExportableDto> exportQuiz(
+            @Parameter(description = "ID del cuestionario a exportar", required = true)
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
+        logger.debug("Called exportQuiz with id: {}", id);
+
+        checkIfAdmin(user);
+
+        QuizExportableDto exportedQuiz = quizService.exportQuiz(id);
+        return ResponseEntity.ok(exportedQuiz);
+    }
+
+    @Operation(summary = "Importa un cuestionario completo desde JSON",
+            description = "El JSON no incluye asignatura ni tema; se seleccionan aparte al importar. Requiere rol ADMIN")
+    @ApiResponses({
+            @ApiResponse(responseCode = "201", description = "Cuestionario importado correctamente"),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura o unidad de asignatura con el ID proporcionado"),
+            @ApiResponse(responseCode = "409", description = "Conflicto al crear el cuestionario")
+    })
+    @PostMapping("/import")
+    public ResponseEntity<QuizDto> importQuiz(
+            @Parameter(description = "Cuestionario a importar", required = true)
+            @RequestBody @Valid QuizExportableDto dto,
+            @Parameter(description = "ID de la asignatura a la que se asocia el cuestionario importado", required = true)
+            @RequestParam long subjectId,
+            @Parameter(description = "ID del tema al que se asocia el cuestionario importado")
+            @RequestParam(required = false) Long subjectUnitId,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+        logger.debug("Called importQuiz with dto: {}, subjectId: {} and subjectUnitId: {}", dto, subjectId, subjectUnitId);
+
+        checkIfAdmin(user);
+
+        QuizDto importedQuiz = quizService.importQuiz(dto, subjectId, subjectUnitId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(importedQuiz);
     }
 }

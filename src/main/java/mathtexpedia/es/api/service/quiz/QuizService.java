@@ -5,6 +5,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 
@@ -28,4 +29,8 @@ public interface QuizService {
     QuizDto update(long quizId, UpdateQuizDto dto) throws MathtexpediaNotFoundException, MathtexpediaInvalidException, MathtexpediaConflictException;
 
     void delete(long id) throws MathtexpediaNotFoundException;
+
+    QuizExportableDto exportQuiz(long quizId) throws MathtexpediaNotFoundException;
+
+    QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
 }
