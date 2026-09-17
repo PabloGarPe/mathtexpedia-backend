@@ -130,6 +130,7 @@ public class QuestionServiceImpl implements QuestionService {
                 question.getText(),
                 question.getType(),
                 question.getExplanation(),
+                question.getPosition(),
                 question.getQuiz().getId()
         );
     }

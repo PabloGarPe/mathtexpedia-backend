@@ -2,15 +2,19 @@ package mathtexpedia.es.api.domain.model.question;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import mathtexpedia.es.api.domain.model.option.OptionForAttemptDto;
+
+import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class QuestionDto {
+public class QuestionForAttemptDto {
 
     private Long id;
     private String text;
     private QuestionType type;
-    private String explanation;
     private int position;
-    private Long quizId;
+
+    private List<OptionForAttemptDto> options;
+
 }

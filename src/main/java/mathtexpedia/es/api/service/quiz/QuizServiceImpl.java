@@ -4,12 +4,19 @@ import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.option.OptionForAttemptDto;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
+import mathtexpedia.es.api.domain.model.question.QuestionForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
+import mathtexpedia.es.api.persistence.option.Option;
+import mathtexpedia.es.api.persistence.option.OptionDataService;
+import mathtexpedia.es.api.persistence.question.Question;
+import mathtexpedia.es.api.persistence.question.QuestionDataService;
 import mathtexpedia.es.api.persistence.quiz.Quiz;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
@@ -22,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -36,16 +44,22 @@ public class QuizServiceImpl implements QuizService {
     private final SubjectDataService subjectDataService;
     private final SubjectUnitDataService subjectUnitDataService;
     private final QuestionService questionService;
+    private final QuestionDataService questionDataService;
+    private final OptionDataService optionDataService;
 
     public QuizServiceImpl(
             QuizDataService quizDataService,
             SubjectDataService subjectDataService,
             SubjectUnitDataService subjectUnitDataService,
-            QuestionService questionService) {
+            QuestionService questionService,
+            QuestionDataService questionDataService,
+            OptionDataService optionDataService) {
         this.quizDataService = quizDataService;
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.questionService = questionService;
+        this.questionDataService = questionDataService;
+        this.optionDataService = optionDataService;
     }
 
     @Override
@@ -106,6 +120,30 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
+    public QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException {
+        logger.info("Fetching quiz for attempt with id: {}", quizId);
+
+        Quiz quiz = quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+
+        List<QuestionForAttemptDto> questionsForQuiz = new ArrayList<>();
+
+        for (Question question : questionDataService.getAllQuestionsByQuizId(quizId)) {
+            List<Option> options = optionDataService.getOptionsByQuestionId(question.getId());
+
+            questionsForQuiz.add(buildQuestionForAttempt(question, options));
+        }
+
+        return new QuizForAttemptDto(
+                quiz.getId(),
+                quiz.getName(),
+                quiz.getDescription(),
+                quiz.getDifficulty(),
+                questionsForQuiz
+        );
+    }
+
+    @Override
     public QuizDto update(long quizId, UpdateQuizDto dto) throws MathtexpediaNotFoundException, MathtexpediaInvalidException, MathtexpediaConflictException {
         logger.info("Updating quiz with id: {}", quizId);
 
@@ -160,6 +198,27 @@ public class QuizServiceImpl implements QuizService {
         } else {
             target.setSubjectUnit(null);
         }
+    }
+
+    private QuestionForAttemptDto buildQuestionForAttempt(Question question, List<Option> options) {
+        List<OptionForAttemptDto> optionsForAttempt = new ArrayList<>();
+
+        for (Option option : options) {
+            OptionForAttemptDto optionForAttempt = new OptionForAttemptDto(
+                    option.getId(),
+                    option.getText(),
+                    option.getPosition()
+            );
+            optionsForAttempt.add(optionForAttempt);
+        }
+
+        return new QuestionForAttemptDto(
+                question.getId(),
+                question.getText(),
+                question.getType(),
+                question.getPosition(),
+                optionsForAttempt
+        );
     }
 
     private QuizDto toDto(Quiz quiz) {

@@ -13,6 +13,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -138,5 +139,22 @@ public class QuizController extends GenericController {
 
         List<QuestionDto> questions = questionService.getQuestionsByQuiz(id);
         return ResponseEntity.ok(questions);
+    }
+
+    @Operation(summary = "Obtiene un cuestionario por su ID para intentar resolverlo", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Cuestionario obtenido correctamente"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
+            @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    })
+    @GetMapping("/{id}/attempt")
+    public ResponseEntity<QuizForAttemptDto> getQuizForAttempt(
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getQuizForAttempt with id: {}", id);
+
+        QuizForAttemptDto quizForAttempt = quizService.getQuizForAttempt(id);
+        return ResponseEntity.ok(quizForAttempt);
     }
 }

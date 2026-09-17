@@ -5,6 +5,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
+import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
 
 import java.util.List;
@@ -19,6 +20,8 @@ public interface QuizService {
     List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId);
 
     List<QuizDto> getQuizzesBySubject(long subjectId);
+
+    QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException;
 
     QuizDto create(CreateQuizDto dto) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
 
