@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface QuestionService {
 
-    List<QuestionDto> getQuestionsByQuiz(long quizId);
+    List<QuestionDto> getQuestionsByQuiz(long quizId) throws MathtexpediaNotFoundException;
 
     Optional<QuestionDto> getQuestion(long id);
 

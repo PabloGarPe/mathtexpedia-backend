@@ -39,8 +39,11 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     @Override
-    public List<QuestionDto> getQuestionsByQuiz(long quizId) {
+    public List<QuestionDto> getQuestionsByQuiz(long quizId) throws MathtexpediaNotFoundException {
         logger.info("Fetching questions for quiz with id: {}", quizId);
+
+        quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
 
         return questionDataService.getAllQuestionsByQuizId(quizId)
                 .stream()

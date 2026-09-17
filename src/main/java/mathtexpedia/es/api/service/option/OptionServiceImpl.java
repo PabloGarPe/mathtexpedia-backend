@@ -35,8 +35,11 @@ public class OptionServiceImpl implements OptionService {
 
 
     @Override
-    public List<OptionDto> getOptionsByQuestion(long questionId) {
+    public List<OptionDto> getOptionsByQuestion(long questionId) throws MathtexpediaNotFoundException {
         logger.info("Fetching options for question with id: {}", questionId);
+
+        questionDataService.getQuestionById(questionId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Question not found with id: " + questionId));
 
         return optionDataService.getOptionsByQuestionId(questionId)
                 .stream()

@@ -11,7 +11,7 @@ import java.util.Optional;
 
 public interface OptionService {
 
-    List<OptionDto> getOptionsByQuestion(long questionId);
+    List<OptionDto> getOptionsByQuestion(long questionId) throws MathtexpediaNotFoundException;
 
     Optional<OptionDto> getOption(long id);
 

@@ -108,10 +108,10 @@ public class PDFController extends GenericController {
             @ApiResponse(responseCode = "404", description = "No existe ningún PDF con ese id"),
             @ApiResponse(responseCode = "409", description = "Ya existe un PDF con ese nombre")
     })
-    @PutMapping("/update")
+    @PutMapping("/update/{pdfId}")
     public ResponseEntity<PDFDto> updatePDF(
             @Parameter(description = "Id del PDF a actualizar", required = true)
-            @RequestParam long pdfId,
+            @PathVariable long pdfId,
             @Parameter(description = "Datos del PDF a actualizar", required = true)
             @RequestBody @Valid UpdatePDFDto pdf,
             @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaConflictException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
