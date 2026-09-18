@@ -1,76 +1,169 @@
 package mathtexpedia.es.api.service.pdf;
 
+import jakarta.persistence.PersistenceException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
+import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
-import mathtexpedia.es.api.presentation.GenericController;
-import org.springframework.beans.factory.annotation.Autowired;
+import mathtexpedia.es.api.persistence.subject.Subject;
+import mathtexpedia.es.api.persistence.subject.SubjectDataService;
+import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
+import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 @Service
 public class PDFServiceImpl implements PDFService {
 
-    @Autowired
-    private PDFDataService pdfDataService;
+    private static final Logger logger = LoggerFactory.getLogger(PDFServiceImpl.class);
 
-    @Autowired
-    private PDFMapper pdfMapper;
+    private final PDFDataService pdfDataService;
+    private final SubjectUnitDataService subjectUnitDataService;
+    private final SubjectDataService subjectDataService;
+    private final PDFMapper pdfMapper;
 
-    @Override
-    public List<PDF>  getPDFWithoutLink() {
-        return pdfDataService.getPDFWithNoLink();
+    public PDFServiceImpl(
+            PDFDataService pdfDataService,
+            SubjectUnitDataService subjectUnitDataService,
+            SubjectDataService subjectDataService,
+            PDFMapper pdfMapper
+    ) {
+        this.pdfDataService = pdfDataService;
+        this.subjectUnitDataService = subjectUnitDataService;
+        this.subjectDataService = subjectDataService;
+        this.pdfMapper = pdfMapper;
     }
 
     @Override
-    public List<PDF> getPDFs() {
-        return pdfDataService.getPDFs();
+    public List<PDFNoLinkDto> getPDFsWithoutLink() {
+        logger.info("Fetching all PDFs without link");
+
+        return pdfDataService.getAll()
+                .stream()
+                .map(pdfMapper::toDtoWithoutLink)
+                .toList();
+    }
+
+
+    @Override
+    public List<PDFDto> getPDFs() {
+        logger.info("Fetching all PDFs");
+
+        return pdfDataService.getAll()
+                .stream()
+                .map(pdfMapper::toDto)
+                .toList();
     }
 
     @Override
-    public PDF getPDF(String pdfName) throws MathtexpediaInvalidException {
-        if(pdfName.isBlank())
-            throw new MathtexpediaInvalidException("Pdf name cannot be empty or blank");
+    public Optional<PDFDto> getPDF(String pdfName) {
+        logger.info("Fetching PDF with name: {}", pdfName);
 
-        return pdfDataService.getPDF(pdfName);
+        Optional<PDF> pdf = pdfDataService.getPDF(pdfName);
+        return pdf.map(pdfMapper::toDto);
     }
 
     @Override
-    public PDF createPDF(CreatePDFDto dto) throws MathtexpediaInvalidException {
+    public List<PDFDto> getPDFsBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException {
+        logger.info("Fetching PDFs for subject unit with id: {}", subjectUnitId);
+
+        if (subjectUnitDataService.getById(subjectUnitId).isEmpty())
+            throw new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId);
+
+        return pdfDataService.getAllForSubjectUnit(subjectUnitId)
+                .stream()
+                .map(pdfMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public List<PDFDto> getPDFsBySubject(long subjectId) throws MathtexpediaNotFoundException {
+        logger.info("Fetching PDFs for subject with id: {}", subjectId);
+
+        if (subjectDataService.getById(subjectId).isEmpty())
+            throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
+
+        return pdfDataService.getAllForSubject(subjectId)
+                .stream()
+                .map(pdfMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public PDFDto createPDF(CreatePDFDto dto) throws MathtexpediaConflictException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        logger.info("Creating new PDF with name: {}", dto.getName());
+
         PDF pdf = pdfMapper.toEntity(dto);
         pdf.setLastTimeEdited(new Date());
 
-        return pdfDataService.createPDF(pdf);
-}
+        resolveSubjectAndUnit(pdf, dto.getSubjectId(), dto.getSubjectUnitId());
 
-    @Override
-    public void deletePDF(String pdfName) throws MathtexpediaInvalidException {
         try {
-            pdfDataService.deletePDF(pdfName);
-        } catch (Exception e) {
-            throw new MathtexpediaInvalidException("An error occurred while deleting PDF");
+            PDF created = pdfDataService.createPDF(pdf);
+            return pdfMapper.toDto(created);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error creating PDF: " + e.getMessage(), e);
         }
     }
 
     @Override
-    public PDF updatePDF(PDF pdf, long pdfId) throws MathtexpediaInvalidException {
-        try {
-            PDF resource = pdfDataService.getPDFById(pdfId);
-            if (resource == null)
-                throw new MathtexpediaInvalidException("PDF with id: " + pdfId + " not found");
+    public void deletePDF(String pdfName) throws MathtexpediaNotFoundException {
+        logger.info("Deleting PDF with name: {}", pdfName);
 
-            resource.setLastTimeEdited(new Date());
-            resource.setName(pdf.getName());
-            resource.setLink(pdf.getLink());
-            resource.setTag(pdf.getTag());
-            resource.setDescription(pdf.getDescription());
-            pdfDataService.updatePDF(resource);
-        } catch (Exception e) {
-            throw new MathtexpediaInvalidException("An error occurred while updating PDF");
+        PDF toDelete = pdfDataService.getPDF(pdfName)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("PDF not found with name: " + pdfName));
+
+        pdfDataService.deletePDF(toDelete);
+    }
+
+    @Override
+    public PDFDto updatePDF(long pdfId, UpdatePDFDto pdf) throws MathtexpediaNotFoundException, MathtexpediaConflictException, MathtexpediaInvalidException {
+        logger.info("Updating PDF with id: {}", pdfId);
+
+        PDF toUpdate = pdfDataService.getPDFById(pdfId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("PDF not found with id: " + pdfId));
+
+        pdfMapper.updateEntity(toUpdate, pdf);
+        toUpdate.setLastTimeEdited(new Date());
+
+        resolveSubjectAndUnit(toUpdate, pdf.getSubjectId(), pdf.getSubjectUnitId());
+
+        try {
+            PDF updated = pdfDataService.updatePDF(toUpdate);
+            return pdfMapper.toDto(updated);
+        } catch (PersistenceException e) {
+            throw new MathtexpediaConflictException("Error updating PDF: " + e.getMessage(), e);
         }
-        return pdf;
+    }
+
+    private void resolveSubjectAndUnit(PDF target, Long subjectId, Long subjectUnitId)
+            throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
+
+        Subject subject = subjectDataService.getById(subjectId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Subject not found with id: " + subjectId));
+        target.setSubject(subject);
+
+        if (subjectUnitId != null) {
+            SubjectUnit subjectUnit = subjectUnitDataService.getById(subjectUnitId)
+                    .orElseThrow(() -> new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId));
+
+            if (!Objects.equals(subjectUnit.getSubject().getId(), subjectId))
+                throw new MathtexpediaInvalidException("Subject unit with id: " + subjectUnitId + " does not belong to subject with id: " + subjectId);
+
+            target.setSubjectUnit(subjectUnit);
+        } else {
+            target.setSubjectUnit(null);
+        }
     }
 }

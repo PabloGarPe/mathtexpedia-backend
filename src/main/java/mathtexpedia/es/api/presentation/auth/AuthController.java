@@ -1,14 +1,10 @@
 package mathtexpedia.es.api.presentation.auth;
 
-import jakarta.servlet.http.HttpServletResponse;
 import mathtexpedia.es.api.domain.model.auth.*;
-import mathtexpedia.es.api.domain.port.auth.AuthPort;
-import mathtexpedia.es.api.domain.port.auth.UserManagementPort;
 import mathtexpedia.es.api.infrastructure.application.PublicEndpoint;
 import mathtexpedia.es.api.presentation.GenericController;
 import mathtexpedia.es.api.service.auth.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.web.exchanges.HttpExchange;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
