@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.presentation.auth;
 
+import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.model.auth.*;
 import mathtexpedia.es.api.infrastructure.application.PublicEndpoint;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -52,14 +53,14 @@ public class AuthController extends GenericController implements PublicEndpoint 
     }
 
     @PostMapping("/create")
-    public ResponseEntity<Void> createUser(@RequestBody CreateUserRequest req) {
+    public ResponseEntity<Void> createUser(@RequestBody @Valid CreateUserRequest req) {
         logger.debug("Request received for registering into mathtexpedia");
         authService.createUser(req);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Void> resetPassword(@RequestBody ResetPasswordRequest req) {
+    public ResponseEntity<Void> resetPassword(@RequestBody @Valid ResetPasswordRequest req) {
         logger.debug("Request received for resetting into mathtexpedia");
         authService.sendResetPasswordEmail(req);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);

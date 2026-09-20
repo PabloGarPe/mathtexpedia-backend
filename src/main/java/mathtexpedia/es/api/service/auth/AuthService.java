@@ -15,7 +15,7 @@ public interface AuthService {
 
     void sendResetPasswordEmail(ResetPasswordRequest req);
 
-    void deleteUser(String email);
+    void deleteUser(UserProfile user);
 
     List<UserDTO> findAllUsers();
 
