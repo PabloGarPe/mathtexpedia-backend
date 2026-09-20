@@ -26,12 +26,14 @@ public class PrivateAuthController extends GenericController {
     @DeleteMapping("/delete-account")
     public void deleteAccount(@AuthenticationPrincipal UserProfile user) {
         logger.debug("Deleting account {}", user);
-        authService.deleteUser(user.getEmail());
+
+        authService.deleteUser(user);
     }
 
     @GetMapping("/all-users")
     public List<UserDTO> getAllUsers(@AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException {
         logger.debug("Getting all users {}", user);
+
         checkIfAdmin(user);
         return authService.findAllUsers();
     }
@@ -39,6 +41,7 @@ public class PrivateAuthController extends GenericController {
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest, @AuthenticationPrincipal UserProfile user) throws MathtexpediaInvalidException {
         logger.debug("Changing password {}", changePasswordRequest);
+
         authService.changePassword(changePasswordRequest, user);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }

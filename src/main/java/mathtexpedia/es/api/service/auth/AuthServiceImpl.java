@@ -5,6 +5,7 @@ import mathtexpedia.es.api.domain.model.auth.*;
 import mathtexpedia.es.api.domain.port.auth.AuthPort;
 import mathtexpedia.es.api.domain.port.auth.UserManagementPort;
 import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +14,19 @@ import java.util.List;
 @Service
 public class AuthServiceImpl implements AuthService{
 
-    @Autowired
-    AuthPort authPort;
+    private final AuthPort authPort;
+    private final UserManagementPort userManagementPort;
+    private final UserAccountService userAccountService;
 
-    @Autowired
-    UserManagementPort userManagementPort;
+    public AuthServiceImpl(
+            AuthPort authPort,
+            UserManagementPort userManagementPort,
+            UserAccountService userAccountService
+    ) {
+        this.authPort = authPort;
+        this.userManagementPort = userManagementPort;
+        this.userAccountService = userAccountService;
+    }
 
     @Override
     public AuthResult refreshToken(String refreshToken) {
@@ -40,8 +49,9 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
-    public void deleteUser(String email) {
-        userManagementPort.deleteUser(email);
+    public void deleteUser(UserProfile user) {
+        userManagementPort.deleteUser(user.getEmail());
+        userAccountService.deactivateUserAccount(user);
     }
 
     @Override
