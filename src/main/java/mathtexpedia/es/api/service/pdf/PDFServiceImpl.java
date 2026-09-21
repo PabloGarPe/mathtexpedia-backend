@@ -4,24 +4,26 @@ import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
+import mathtexpedia.es.api.domain.model.userEvent.EventType;
+import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
+import mathtexpedia.es.api.service.userAccount.UserAccountService;
+import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class PDFServiceImpl implements PDFService {
@@ -32,17 +34,21 @@ public class PDFServiceImpl implements PDFService {
     private final SubjectUnitDataService subjectUnitDataService;
     private final SubjectDataService subjectDataService;
     private final PDFMapper pdfMapper;
+    private final UserEventService userEventService;
+    private final UserAccountService userAccountService;
 
     public PDFServiceImpl(
             PDFDataService pdfDataService,
             SubjectUnitDataService subjectUnitDataService,
             SubjectDataService subjectDataService,
-            PDFMapper pdfMapper
-    ) {
+            PDFMapper pdfMapper,
+            UserEventService userEventService, UserAccountService userAccountService) {
         this.pdfDataService = pdfDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.subjectDataService = subjectDataService;
         this.pdfMapper = pdfMapper;
+        this.userEventService = userEventService;
+        this.userAccountService = userAccountService;
     }
 
     @Override
@@ -67,10 +73,21 @@ public class PDFServiceImpl implements PDFService {
     }
 
     @Override
-    public Optional<PDFDto> getPDF(String pdfName) {
-        logger.info("Fetching PDF with name: {}", pdfName);
+    public Optional<PDFDto> getPDF(String pdfName, UserProfile user) {
+        logger.info("Fetching PDF with name: {} for user: {}", pdfName, user.getId());
 
         Optional<PDF> pdf = pdfDataService.getPDF(pdfName);
+
+        if (pdf.isPresent()) {
+            try {
+                Map<String, Object> eventData = new HashMap<>();
+                eventData.put("pdfId", pdf.map(PDF::getId).orElse(null));
+                userEventService.record(userAccountService.getOrProvision(user), EventType.PDF_VIEWED, eventData);
+            } catch (MathtexpediaUnauthorizedException e) {
+                logger.warn("User {} is not authorized to view PDF {}", user.getId(), pdfName);
+            }
+        }
+
         return pdf.map(pdfMapper::toDto);
     }
 

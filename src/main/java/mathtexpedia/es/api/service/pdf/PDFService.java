@@ -3,10 +3,12 @@ package mathtexpedia.es.api.service.pdf;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
+import mathtexpedia.es.api.domain.security.UserProfile;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +19,7 @@ public interface PDFService {
 
     List<PDFNoLinkDto> getPDFsWithoutLink();
 
-    Optional<PDFDto> getPDF(String pdfName);
+    Optional<PDFDto> getPDF(String pdfName, UserProfile user);
 
     List<PDFDto> getPDFsBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
 
