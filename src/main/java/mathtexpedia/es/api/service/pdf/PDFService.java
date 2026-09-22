@@ -7,6 +7,7 @@ import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
+import mathtexpedia.es.api.domain.security.UserProfile;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +18,7 @@ public interface PDFService {
 
     List<PDFNoLinkDto> getPDFsWithoutLink();
 
-    Optional<PDFDto> getPDF(String pdfName);
+    Optional<PDFDto> getPDF(String pdfName, UserProfile user);
 
     List<PDFDto> getPDFsBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
 

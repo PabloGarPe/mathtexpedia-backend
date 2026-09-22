@@ -49,11 +49,12 @@ public class PDFController extends GenericController {
     @GetMapping("/pdf/{pdfName}")
     public ResponseEntity<PDFDto> getPDF(
             @Parameter(description = "Nombre del PDF a obtener", required = true)
-            @PathVariable String pdfName
+            @PathVariable String pdfName,
+            @AuthenticationPrincipal UserProfile user
     ) {
-        logger.debug("Called recieve to get PDF {}", pdfName);
+        logger.debug("Called receive to get PDF {} by user {}", pdfName, user.getId());
 
-        Optional<PDFDto> pdf = pdfService.getPDF(pdfName);
+        Optional<PDFDto> pdf = pdfService.getPDF(pdfName, user);
         return pdf.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
