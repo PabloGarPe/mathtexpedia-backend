@@ -11,9 +11,6 @@ import java.util.List;
 @AllArgsConstructor
 public class SubmitQuizAttemptDto {
 
-    @Schema(description = "Identificador del quiz asociado al intento", example = "1")
-    private Long quizId;
-
     @Schema(description = "Lista de respuestas del intento de quiz")
     private List<AttemptAnswerSubmissionDto> answers;
 
