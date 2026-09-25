@@ -7,6 +7,7 @@ import mathtexpedia.es.api.domain.model.attemptAnswer.AttemptAnswerSubmissionDto
 import mathtexpedia.es.api.domain.model.option.OptionDto;
 import mathtexpedia.es.api.domain.model.question.QuestionForCorrectionDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForCorrectionDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
@@ -25,6 +26,8 @@ import mathtexpedia.es.api.service.quiz.QuizService;
 import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,8 +47,9 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     private final QuestionDataService questionDataService;
     private final OptionDataService optionDataService;
     private final AttemptAnswerDataService attemptAnswerDataService;
+    private final QuizAttemptMapper quizAttemptMapper;
 
-    public QuizAttemptServiceImpl(QuizService quizService, UserAccountService userAccountService, QuizDataService quizDataService, QuizAttemptDataService quizAttemptDataService, QuestionDataService questionDataService, OptionDataService optionDataService, AttemptAnswerDataService attemptAnswerDataService) {
+    public QuizAttemptServiceImpl(QuizService quizService, UserAccountService userAccountService, QuizDataService quizDataService, QuizAttemptDataService quizAttemptDataService, QuestionDataService questionDataService, OptionDataService optionDataService, AttemptAnswerDataService attemptAnswerDataService, QuizAttemptMapper quizAttemptMapper) {
         this.quizService = quizService;
         this.userAccountService = userAccountService;
         this.quizDataService = quizDataService;
@@ -53,6 +57,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         this.questionDataService = questionDataService;
         this.optionDataService = optionDataService;
         this.attemptAnswerDataService = attemptAnswerDataService;
+        this.quizAttemptMapper = quizAttemptMapper;
     }
 
     @Override
@@ -96,6 +101,30 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         }
 
         return result;
+    }
+
+    @Override
+    public Page<QuizAttemptDto> getMyAttempts(UserProfile user, Pageable pageable) throws MathtexpediaUnauthorizedException {
+        logger.info("Fetching all quizzes attempts for userId: {}", user.getId());
+
+        UserAccount account = userAccountService.getOrProvision(user);
+
+        return quizAttemptDataService.getByUserId(account.getId(), pageable)
+                .map(quizAttemptMapper::toDto);
+    }
+
+    @Override
+    public List<QuizAttemptDto> getAttemptsForQuiz(long quizId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
+        logger.info("Fetching all attempts for quizId: {}, userId: {}", quizId, user.getId());
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+
+        return quizAttemptDataService.getByQuizIdAndUserId(quizId, account.getId())
+                .stream()
+                .map(quizAttemptMapper::toDto)
+                .toList();
     }
 
     private QuizAttemptResultDto correctAnswers(QuizForCorrectionDto quiz, SubmitQuizAttemptDto dto) {

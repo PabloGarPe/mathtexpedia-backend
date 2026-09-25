@@ -15,6 +15,7 @@ import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
@@ -206,5 +207,20 @@ public class QuizController extends GenericController {
         logger.debug("Called submitAttempt with id: {} and dto: {}", id, dto);
 
         return quizAttemptService.submitAttempt(id, dto, user);
+    }
+
+    @Operation(summary = "Obtiene los intentos de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponse(responseCode = "200", description = "Intentos de cuestionario obtenidos correctamente")
+    @ApiResponse(responseCode = "401", description = "No autorizado")
+    @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    @GetMapping("/{id}/attempts")
+    public List<QuizAttemptDto> getAttemptsForQuiz(
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
+        logger.debug("Called getAttemptsForQuiz with id: {}", id);
+
+        return quizAttemptService.getAttemptsForQuiz(id, user);
     }
 }
