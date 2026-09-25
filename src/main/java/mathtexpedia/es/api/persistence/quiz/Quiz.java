@@ -8,7 +8,7 @@ import mathtexpedia.es.api.domain.model.quiz.Difficulty;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Entity
 @Table(name = "quiz")
@@ -36,7 +36,7 @@ public class Quiz {
 
     @Schema(description = "Fecha de última edición del cuestionario", accessMode = Schema.AccessMode.READ_ONLY)
     @Column(name = "last_time_edited")
-    private Date lastTimeEdited;
+    private Instant lastTimeEdited;
 
     @ManyToOne
     @JoinColumn(name = "subject_id", nullable = false)

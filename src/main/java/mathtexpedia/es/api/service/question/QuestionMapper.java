@@ -1,12 +1,9 @@
 package mathtexpedia.es.api.service.question;
 
+import mathtexpedia.es.api.domain.model.option.OptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
 import mathtexpedia.es.api.domain.model.option.OptionForAttemptDto;
-import mathtexpedia.es.api.domain.model.question.CreateQuestionDto;
-import mathtexpedia.es.api.domain.model.question.QuestionDto;
-import mathtexpedia.es.api.domain.model.question.QuestionExportableDto;
-import mathtexpedia.es.api.domain.model.question.QuestionForAttemptDto;
-import mathtexpedia.es.api.domain.model.question.UpdateQuestionDto;
+import mathtexpedia.es.api.domain.model.question.*;
 import mathtexpedia.es.api.persistence.option.Option;
 import mathtexpedia.es.api.persistence.question.Question;
 import mathtexpedia.es.api.service.option.OptionMapper;
@@ -75,6 +72,21 @@ public class QuestionMapper {
                 question.getType(),
                 question.getExplanation(),
                 optionsForExport
+        );
+    }
+
+    public QuestionForCorrectionDto toCorrectionDto(Question question, List<Option> options) {
+        List<OptionDto> optionsForCorrection = options.stream()
+                .map(optionMapper::toDto)
+                .toList();
+
+        return new QuestionForCorrectionDto(
+                question.getId(),
+                question.getText(),
+                question.getType(),
+                question.getExplanation(),
+                question.getPosition(),
+                optionsForCorrection
         );
     }
 }

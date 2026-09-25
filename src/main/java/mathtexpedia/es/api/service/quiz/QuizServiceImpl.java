@@ -6,15 +6,8 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
-import mathtexpedia.es.api.domain.model.question.CreateQuestionDto;
-import mathtexpedia.es.api.domain.model.question.QuestionDto;
-import mathtexpedia.es.api.domain.model.question.QuestionExportableDto;
-import mathtexpedia.es.api.domain.model.question.QuestionForAttemptDto;
-import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
-import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
+import mathtexpedia.es.api.domain.model.question.*;
+import mathtexpedia.es.api.domain.model.quiz.*;
 import mathtexpedia.es.api.persistence.option.Option;
 import mathtexpedia.es.api.persistence.option.OptionDataService;
 import mathtexpedia.es.api.persistence.question.Question;
@@ -33,8 +26,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -42,7 +35,8 @@ import java.util.Optional;
 @Service
 public class QuizServiceImpl implements QuizService {
 
-    private final static Logger logger = LoggerFactory.getLogger(QuizServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(QuizServiceImpl.class);
+    private static final String QUIZ_NOT_FOUND_MESSAGE = "Quiz not found with id: ";
 
     private final QuizDataService quizDataService;
     private final SubjectDataService subjectDataService;
@@ -124,7 +118,7 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Creating new quiz with name: {}", dto.getName());
 
         Quiz quiz = quizMapper.toEntity(dto);
-        quiz.setLastTimeEdited(new Date());
+        quiz.setLastTimeEdited(Instant.now());
 
         resolveSubjectAndUnit(quiz, dto.getSubjectId(), dto.getSubjectUnitId());
 
@@ -141,7 +135,7 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Fetching quiz for attempt with id: {}", quizId);
 
         Quiz quiz = quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         List<QuestionForAttemptDto> questionsForQuiz = new ArrayList<>();
 
@@ -155,14 +149,32 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
+    public QuizForCorrectionDto getQuizForCorrection(long quizId) throws MathtexpediaNotFoundException {
+        logger.info("Fetching quiz for correction with id: {}", quizId);
+
+        Quiz quiz = quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
+
+        List<QuestionForCorrectionDto> questionsForQuiz = new ArrayList<>();
+
+        for (Question question : questionDataService.getAllQuestionsByQuizId(quizId)) {
+            List<Option> options = optionDataService.getOptionsByQuestionId(question.getId());
+
+            questionsForQuiz.add(questionMapper.toCorrectionDto(question, options));
+        }
+
+        return quizMapper.toCorrectionDto(quiz, questionsForQuiz);
+    }
+
+    @Override
     public QuizDto update(long quizId, UpdateQuizDto dto) throws MathtexpediaNotFoundException, MathtexpediaInvalidException, MathtexpediaConflictException {
         logger.info("Updating quiz with id: {}", quizId);
 
         Quiz toUpdate = quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         quizMapper.updateEntity(toUpdate, dto);
-        toUpdate.setLastTimeEdited(new Date());
+        toUpdate.setLastTimeEdited(Instant.now());
 
         resolveSubjectAndUnit(toUpdate, dto.getSubjectId(), dto.getSubjectUnitId());
 
@@ -175,7 +187,7 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public void delete(long id) throws MathtexpediaNotFoundException {
         logger.info("Deleting quiz with id: {}", id);
 
@@ -184,7 +196,7 @@ public class QuizServiceImpl implements QuizService {
         }
 
         Quiz toDelete = quizDataService.getById(id)
-                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + id));
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + id));
 
         quizDataService.delete(toDelete);
 
@@ -195,7 +207,7 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Exporting quiz with id: {}", quizId);
 
         Quiz quiz = quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException("Quiz not found with id: " + quizId));
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         List<QuestionExportableDto> questionsForQuiz = new ArrayList<>();
 
@@ -209,7 +221,7 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId)
             throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
         logger.info("Importing quiz with name: {}", dto.getName());

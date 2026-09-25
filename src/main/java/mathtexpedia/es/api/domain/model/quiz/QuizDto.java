@@ -5,7 +5,7 @@ import lombok.Data;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 
-import java.util.Date;
+import java.time.Instant;
 
 @Data
 @AllArgsConstructor
@@ -15,7 +15,7 @@ public class QuizDto {
     private String name;
     private String description;
     private Difficulty difficulty;
-    private Date lastTimeEdited;
+    private Instant lastTimeEdited;
     private SubjectDto subject;
     private SubjectUnitDto subjectUnit;
 }

@@ -3,11 +3,7 @@ package mathtexpedia.es.api.service.quiz;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
-import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
-import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
+import mathtexpedia.es.api.domain.model.quiz.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +19,8 @@ public interface QuizService {
     List<QuizDto> getQuizzesBySubject(long subjectId) throws MathtexpediaNotFoundException;
 
     QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException;
+
+    QuizForCorrectionDto getQuizForCorrection(long quizId) throws MathtexpediaNotFoundException;
 
     QuizDto create(CreateQuizDto dto) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
 

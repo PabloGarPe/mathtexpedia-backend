@@ -2,11 +2,8 @@ package mathtexpedia.es.api.service.quiz;
 
 import mathtexpedia.es.api.domain.model.question.QuestionExportableDto;
 import mathtexpedia.es.api.domain.model.question.QuestionForAttemptDto;
-import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
-import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
-import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
+import mathtexpedia.es.api.domain.model.question.QuestionForCorrectionDto;
+import mathtexpedia.es.api.domain.model.quiz.*;
 import mathtexpedia.es.api.persistence.quiz.Quiz;
 import mathtexpedia.es.api.service.subject.SubjectMapper;
 import mathtexpedia.es.api.service.subjectUnit.SubjectUnitMapper;
@@ -63,6 +60,16 @@ public class QuizMapper {
 
     public QuizExportableDto toExportableDto(Quiz quiz, List<QuestionExportableDto> questions) {
         return new QuizExportableDto(
+                quiz.getName(),
+                quiz.getDescription(),
+                quiz.getDifficulty(),
+                questions
+        );
+    }
+
+    public QuizForCorrectionDto toCorrectionDto(Quiz quiz, List<QuestionForCorrectionDto> questions) {
+        return new QuizForCorrectionDto(
+                quiz.getId(),
                 quiz.getName(),
                 quiz.getDescription(),
                 quiz.getDifficulty(),
