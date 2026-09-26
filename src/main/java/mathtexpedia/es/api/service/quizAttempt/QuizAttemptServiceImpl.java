@@ -9,6 +9,7 @@ import mathtexpedia.es.api.domain.model.question.QuestionForCorrectionDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForCorrectionDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptStatsDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswer;
@@ -78,6 +79,8 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         attempt.setScore(result.getScore());
         attempt.setTotalQuestions(result.getTotalQuestions());
         attempt.setSubmittedAt(Instant.now());
+        attempt.setCorrectAnswers(result.getCorrectAnswers());
+        attempt.setUnansweredQuestions(result.getUnansweredQuestions());
 
         QuizAttempt savedAttempt = quizAttemptDataService.createQuizAttempt(attempt);
         result.setId(savedAttempt.getId());
@@ -125,6 +128,15 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
                 .stream()
                 .map(quizAttemptMapper::toDto)
                 .toList();
+    }
+
+    @Override
+    public QuizAttemptStatsDto getMyStats(UserProfile user) throws MathtexpediaUnauthorizedException {
+        logger.info("Fetching quiz attempt stats for userId: {}", user.getId());
+
+        UserAccount account = userAccountService.getOrProvision(user);
+
+        return quizAttemptMapper.toDto(quizAttemptDataService.getStatsByUserId(account.getId()));
     }
 
     private QuizAttemptResultDto correctAnswers(QuizForCorrectionDto quiz, SubmitQuizAttemptDto dto) {

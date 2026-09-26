@@ -13,4 +13,5 @@ public interface QuizAttemptDataService {
 
     List<QuizAttempt> getByQuizIdAndUserId(long quizId, long userId);
 
+    QuizAttemptStats getStatsByUserId(long userId);
 }

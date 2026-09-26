@@ -31,4 +31,8 @@ public class QuizAttempt {
 
     @Column(nullable = false, updatable = false)
     private Instant submittedAt;
+
+    private int correctAnswers;
+
+    private int unansweredQuestions;
 }

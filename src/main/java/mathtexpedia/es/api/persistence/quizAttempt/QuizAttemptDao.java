@@ -66,4 +66,24 @@ public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataServ
         query.setParameter(USER_ID_PARAM, userId);
         return query.getResultList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public QuizAttemptStats getStatsByUserId(long userId) {
+        logger.trace("Getting quiz attempt stats for user: {}", userId);
+
+        TypedQuery<QuizAttemptStats> query = em.createQuery(
+                "SELECT new mathtexpedia.es.api.persistence.quizAttempt.QuizAttemptStats(" +
+                        "COUNT(a), " +
+                        "SUM(CASE WHEN a.unansweredQuestions = 0 THEN 1 ELSE 0 END), " +
+                        "SUM(a.correctAnswers), " +
+                        "SUM(a.totalQuestions - a.unansweredQuestions), " +
+                        "AVG(a.score), " +
+                        "MAX(a.score)) " +
+                        "FROM QuizAttempt a WHERE a.user.id = :userId",
+                QuizAttemptStats.class
+        );
+        query.setParameter(USER_ID_PARAM, userId);
+        return query.getSingleResult();
+    }
 }

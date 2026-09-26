@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptStatsDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
 import mathtexpedia.es.api.service.quizAttempt.QuizAttemptService;
@@ -37,5 +38,15 @@ public class QuizAttemptController extends GenericController {
         logger.trace("Called getMyAttempts with pageable: {} and user: {}", pageable, user);
 
         return quizAttemptService.getMyAttempts(user, pageable);
+    }
+
+    @Operation(summary = "Obtener mis estadísticas de cuestionarios", description = "Estadísticas agregadas de todos los intentos del usuario autenticado")
+    @ApiResponse(responseCode = "200", description = "Estadísticas del usuario autenticado")
+    @ApiResponse(responseCode = "401", description = "Usuario no autenticado")
+    @GetMapping("/stats")
+    public QuizAttemptStatsDto getMyStats(@AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException {
+        logger.trace("Called getMyStats with user: {}", user);
+
+        return quizAttemptService.getMyStats(user);
     }
 }

@@ -4,6 +4,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptStatsDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import org.springframework.data.domain.Page;
@@ -18,4 +19,6 @@ public interface QuizAttemptService {
     Page<QuizAttemptDto> getMyAttempts(UserProfile user, Pageable pageable) throws MathtexpediaUnauthorizedException;
 
     List<QuizAttemptDto> getAttemptsForQuiz(long quizId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException;
+
+    QuizAttemptStatsDto getMyStats(UserProfile user) throws MathtexpediaUnauthorizedException;
 }
