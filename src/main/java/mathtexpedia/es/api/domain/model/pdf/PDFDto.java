@@ -13,7 +13,6 @@ public class PDFDto {
 
     private Long id;
     private String name;
-    private String link;
     private Date lastTimeEdited;
     private String description;
     private SubjectDto subject;
