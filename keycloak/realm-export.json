@@ -3,12 +3,41 @@
   "enabled": true,
   "sslRequired": "none",
   "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
   "resetPasswordAllowed": true,
+  "verifyEmail": true,
+  "rememberMe": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es", "en"],
+  "defaultLocale": "es",
+  "smtpServer": {
+    "host": "smtp.resend.com",
+    "port": "465",
+    "ssl": "true",
+    "starttls": "false",
+    "auth": "true",
+    "user": "resend",
+    "password": "${RESEND_API_KEY}",
+    "from": "no-reply@updates.mathtexpedia.es",
+    "fromDisplayName": "MathTexpedia",
+    "replyTo": "",
+    "replyToDisplayName": "",
+    "envelopeFrom": ""
+  },
   "roles": {
     "realm": [
       { "name": "ADMIN", "description": "Administrador del sistema" },
       { "name": "USER", "description": "Usuario estándar" }
     ]
+  },
+  "defaultRole": {
+    "name": "default-roles-mathtexpedia",
+    "composite": true,
+    "composites": {
+      "realm": ["USER", "offline_access", "uma_authorization"]
+    }
   },
   "clients": [
     {
@@ -20,6 +49,22 @@
       "webOrigins": ["*"],
       "directAccessGrantsEnabled": true,
       "standardFlowEnabled": true
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": true,
+      "storeToken": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "clientId": "${GOOGLE_CLIENT_ID}",
+        "clientSecret": "${GOOGLE_CLIENT_SECRET}",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT"
+      }
     }
   ],
   "users": [
