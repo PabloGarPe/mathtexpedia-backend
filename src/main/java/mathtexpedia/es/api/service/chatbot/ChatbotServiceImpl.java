@@ -228,9 +228,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     private List<PDFSummary> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
         try {
             List<String> keywords = extractKeywords(query);
-            List<PDFSummary> allPdfs = includeLinks
-                    ? pdfService.getPDFs().stream().map(this::toSummary).toList()
-                    : pdfService.getPDFsWithoutLink().stream().map(this::toSummary).toList();
+            List<PDFSummary> allPdfs =pdfService.getPDFs().stream().map(this::toSummary).toList();
 
             return allPdfs.stream()
                     .map(pdf -> Map.entry(pdf, score(pdf, keywords)))
@@ -336,7 +334,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         return new PDFSummary(
                 dto.getName(),
                 dto.getSubjectUnit() != null ? dto.getSubjectUnit().getName() : null,
-                dto.getLink()
+                null
         );
     }
 

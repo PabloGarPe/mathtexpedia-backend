@@ -10,13 +10,9 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreatePDFDto {
 
-    @Schema(description = "Nombre único del PDF dentro del catálogo", example = "algebra-lineal-tema-1.pdf")
+    @Schema(description = "Nombre único del PDF dentro del catálogo", example = "CDI: Tema 3 - Integrales")
     @NotBlank
     private String name;
-
-    @Schema(description = "Enlace de descarga del PDF")
-    @NotBlank
-    private String link;
 
     @Schema(description = "Identificador de la asignatura a la que pertenece el PDF")
     @NotNull
@@ -33,14 +29,12 @@ public class CreatePDFDto {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("PDF [name=").append(name)
-                .append(", link=").append(link)
                 .append(", description=").append(description)
                 .append(", subjectId=").append(subjectId);
         if (subjectUnitId != null) {
             sb.append(", subjectUnitId=").append(subjectUnitId);
         }
         sb.append("]");
-
         return sb.toString();
     }
 }
