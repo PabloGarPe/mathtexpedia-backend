@@ -14,4 +14,10 @@ public interface QuizAttemptDataService {
     List<QuizAttempt> getByQuizIdAndUserId(long quizId, long userId);
 
     QuizAttemptStats getStatsByUserId(long userId);
+
+    QuizAttemptStats getStatsByQuizIdAndUserId(long quizId, long userId);
+
+    long countByQuizIdAndUserId(long quizId, long userId);
+
+    Page<LeaderboardRow> getLeaderboardForQuiz(long quizId, Pageable pageable);
 }

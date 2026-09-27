@@ -35,4 +35,10 @@ public class QuizAttempt {
     private int correctAnswers;
 
     private int unansweredQuestions;
+
+    @Column(nullable = false)
+    private int attemptNumber;
+
+    @Column(nullable = false)
+    private double adjustedScore;
 }
