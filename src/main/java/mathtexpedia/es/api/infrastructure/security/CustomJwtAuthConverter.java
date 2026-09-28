@@ -19,10 +19,11 @@ public class CustomJwtAuthConverter implements Converter<Jwt, AbstractAuthentica
         String email = jwt.getClaimAsString("email");
         String id = jwt.getSubject();
 
-        String role = authorities.stream()
-                .findFirst()
+        boolean isAdmin = authorities.stream()
                 .map(GrantedAuthority::getAuthority)
-                .orElse("ROLE_USER");
+                .anyMatch("ROLE_ADMIN"::equalsIgnoreCase);
+
+        String role = isAdmin ? "ROLE_ADMIN" : "ROLE_USER";
 
         UserProfile userProfile = new UserProfile(email, role, id);
 
