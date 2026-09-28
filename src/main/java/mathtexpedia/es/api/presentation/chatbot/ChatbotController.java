@@ -35,8 +35,7 @@ public class ChatbotController extends GenericController {
     public ChatResponse chat(@AuthenticationPrincipal UserProfile user,
                              @RequestBody @Valid ChatRequest request,
                              HttpServletRequest httpRequest) {
-        String userIdentifier = user != null ? user.getEmail() : getClientIp(httpRequest);
-        return chatbotService.chat(request, user != null, userIdentifier);
+        return chatbotService.chat(request, user, getClientIp(httpRequest));
     }
 
     private String getClientIp(HttpServletRequest req) {

@@ -1,12 +1,19 @@
 package mathtexpedia.es.api.service.chatbot;
 
 import mathtexpedia.es.api.domain.model.chatbot.*;
+import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PDFNoLinkDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFSummary;
+import mathtexpedia.es.api.domain.model.userEvent.EventType;
 import mathtexpedia.es.api.domain.port.chatbot.GenerativeAiPort;
 import mathtexpedia.es.api.domain.port.chatbot.SitemapPort;
-import mathtexpedia.es.api.domain.port.pdf.PDFCatalogPort;
+import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.persistence.chatbot.ChatUsage;
 import mathtexpedia.es.api.persistence.chatbot.ChatUsageDataService;
+import mathtexpedia.es.api.persistence.user.UserAccount;
+import mathtexpedia.es.api.service.pdf.PDFService;
+import mathtexpedia.es.api.service.userAccount.UserAccountService;
+import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +69,12 @@ public class ChatbotServiceImpl implements ChatbotService {
             "blog", "post", "posts", "leer", "explicacion", "teoria"
     );
 
-    private final PDFCatalogPort pdfCatalogPort;
+    private final PDFService pdfService;
     private final SitemapPort sitemapPort;
     private final GenerativeAiPort generativeAiPort;
     private final ChatUsageDataService chatUsageDataService;
+    private final UserAccountService userAccountService;
+    private final UserEventService userEventService;
 
     @Value("${chatbot.anonymous-daily-request-limit:1}")
     private int anonymousDailyRequestLimit;
@@ -73,22 +82,28 @@ public class ChatbotServiceImpl implements ChatbotService {
     @Value("${chatbot.daily-token-limit:3000}")
     private int dailyTokenLimit;
 
-    public ChatbotServiceImpl(PDFCatalogPort pdfCatalogPort, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort, ChatUsageDataService chatUsageDataService) {
-        this.pdfCatalogPort = pdfCatalogPort;
+    public ChatbotServiceImpl(PDFService pdfService, SitemapPort sitemapPort, GenerativeAiPort generativeAiPort,
+                              ChatUsageDataService chatUsageDataService, UserAccountService userAccountService, UserEventService userEventService) {
+        this.pdfService = pdfService;
         this.sitemapPort = sitemapPort;
         this.generativeAiPort = generativeAiPort;
         this.chatUsageDataService = chatUsageDataService;
+        this.userAccountService = userAccountService;
+        this.userEventService = userEventService;
     }
 
     @Override
-    public ChatResponse chat(ChatRequest request, boolean isAuthenticated, String userIdentifier) {
+    public ChatResponse chat(ChatRequest request, UserProfile user, String clientIp) {
         try {
             logger.info("Processing chat request: {}", request.getMessage());
 
+            UserAccount account = user != null ? userAccountService.getOrProvision(user) : null;
+            boolean isAuthenticated = account != null;
+
             LocalDate today = LocalDate.now();
-            Optional<ChatResponse> limitResponse = checkUsageLimit(isAuthenticated, userIdentifier, today);
+            Optional<ChatResponse> limitResponse = checkUsageLimit(isAuthenticated, account, clientIp, today);
             if (limitResponse.isPresent()) {
-                logger.warn("Usage limit reached for user: {} on date: {}", userIdentifier, today);
+                logger.warn("Usage limit reached for user: {} on date: {}", isAuthenticated ? account.getEmail() : clientIp, today);
                 return limitResponse.get();
             }
 
@@ -121,7 +136,19 @@ public class ChatbotServiceImpl implements ChatbotService {
             String prompt = buildPrompt(contextToUse, conversationContext, request.getMessage(), instructions);
 
             GenerationResult result = generativeAiPort.generate(prompt);
-            chatUsageDataService.incrementUsage(userIdentifier, today, result.totalTokens());
+            if (isAuthenticated) {
+                chatUsageDataService.incrementUsage(account, today, result.totalTokens());
+
+                try {
+                    Map<String, Object> eventData = new HashMap<>();
+                    eventData.put("isNavigation", isNavigation);
+                    userEventService.record(account, EventType.CHAT_MESSAGE_SENT, eventData);
+                } catch (Exception e) {
+                    logger.error("Error recording chat event", e);
+                }
+            } else {
+                chatUsageDataService.incrementUsage(clientIp, today, result.totalTokens());
+            }
             return ChatResponse.success(result.text(), buildResources(pdfs, blogPosts, navigationPages));
 
         } catch (Exception e) {
@@ -130,8 +157,10 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
     }
 
-    private Optional<ChatResponse> checkUsageLimit(boolean isAuthenticated, String userIdentifier, LocalDate today) {
-        Optional<ChatUsage> usage = chatUsageDataService.get(userIdentifier, today);
+    private Optional<ChatResponse> checkUsageLimit(boolean isAuthenticated, UserAccount account, String clientIp, LocalDate today) {
+        Optional<ChatUsage> usage = isAuthenticated
+                ? chatUsageDataService.get(account, today)
+                : chatUsageDataService.get(clientIp, today);
 
         if (!isAuthenticated) {
             int requests = usage.map(ChatUsage::getRequestCount).orElse(0);
@@ -199,7 +228,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     private List<PDFSummary> searchRelevantPdfs(String query, int limit, boolean includeLinks) {
         try {
             List<String> keywords = extractKeywords(query);
-            List<PDFSummary> allPdfs = includeLinks ? pdfCatalogPort.getAllPdfs() : pdfCatalogPort.getAllPdfsWithNoLink();
+            List<PDFSummary> allPdfs =pdfService.getPDFs().stream().map(this::toSummary).toList();
 
             return allPdfs.stream()
                     .map(pdf -> Map.entry(pdf, score(pdf, keywords)))
@@ -301,4 +330,19 @@ public class ChatbotServiceImpl implements ChatbotService {
         return resources;
     }
 
+    private PDFSummary toSummary(PDFDto dto) {
+        return new PDFSummary(
+                dto.getName(),
+                dto.getSubjectUnit() != null ? dto.getSubjectUnit().getName() : null,
+                null
+        );
+    }
+
+    private PDFSummary toSummary(PDFNoLinkDto dto) {
+        return new PDFSummary(
+                dto.getName(),
+                dto.getSubjectUnit() != null ? dto.getSubjectUnit().getName() : null,
+                null
+        );
+    }
 }

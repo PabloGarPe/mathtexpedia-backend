@@ -2,11 +2,15 @@ package mathtexpedia.es.api.persistence.chatbot;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import mathtexpedia.es.api.persistence.user.UserAccount;
 
 import java.time.LocalDate;
 
 @Entity
-@Table(name = "chat_usage", uniqueConstraints = @UniqueConstraint(columnNames = {"identifier", "usage_date"}))
+@Table(name = "chat_usage", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"user_id", "usage_date"}),
+        @UniqueConstraint(columnNames = {"identifier", "usage_date"})
+})
 @Data
 public class ChatUsage {
 
@@ -14,7 +18,10 @@ public class ChatUsage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private UserAccount user;
+
     private String identifier; //If authenticated email, else IP
 
     @Column(name = "usage_date", nullable = false)

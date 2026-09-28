@@ -105,6 +105,13 @@ public class GenericController {
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(MathtexpediaConflictException.class)
+    protected ResponseEntity<Object> handleMathtexpediaConflictException(MathtexpediaConflictException e) {
+        logErrorAndHttpResponse(e, "409", Level.ERROR);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         logErrorAndHttpResponse(e, "400", Level.ERROR);

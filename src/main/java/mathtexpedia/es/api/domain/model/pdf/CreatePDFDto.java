@@ -3,30 +3,47 @@ package mathtexpedia.es.api.domain.model.pdf;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class CreatePDFDto {
 
-    @Schema(description = "Nombre único del PDF dentro del catálogo", example = "algebra-lineal-tema-1.pdf")
+    @Schema(description = "Nombre único del PDF dentro del catálogo", example = "CDI: Tema 3 - Integrales")
     @NotBlank
     private String name;
 
-    @Schema(description = "Enlace de descarga del PDF")
-    @NotBlank
-    private String link;
-
-    @Schema(description = "Categoría a la que pertenece el PDF")
+    @Schema(description = "Identificador de la asignatura a la que pertenece el PDF")
     @NotNull
-    private PDFTag pdfTag;
+    private Long subjectId;
+
+    @Schema(description = "Identificador de la unidad temática a la que pertenece el PDF. En caso de que el PDF sea general para toda la asignatura, este campo puede ser nulo.",
+            nullable = true)
+    private Long subjectUnitId;
 
     @Schema(description = "Descripción opcional del contenido del PDF")
     private String description;
 
+    @Schema(description = "Emails de los usuarios autores. El primero es el autor principal (obligatorio); el resto, coautores (opcionales)",
+            example = "[\"autor@mathtexpedia.es\", \"coautor@mathtexpedia.es\"]")
+    @NotEmpty
+    private List<@NotBlank String> authorEmails;
+
     @Override
     public String toString() {
-        return "PDF [name=" + name + ", link=" + link + ", pdfTag=" + pdfTag + ", description=" + description + "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append("PDF [name=").append(name)
+                .append(", description=").append(description)
+                .append(", subjectId=").append(subjectId)
+                .append(", authorEmails=").append(authorEmails);
+        if (subjectUnitId != null) {
+            sb.append(", subjectUnitId=").append(subjectUnitId);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }
