@@ -18,6 +18,8 @@ import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
+import mathtexpedia.es.api.persistence.user.UserAccount;
+import mathtexpedia.es.api.persistence.user.UserAccountDataService;
 import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.slf4j.Logger;
@@ -46,6 +48,7 @@ public class PDFServiceImpl implements PDFService {
     private final PDFMapper pdfMapper;
     private final UserEventService userEventService;
     private final UserAccountService userAccountService;
+    private final UserAccountDataService userAccountDataService;
     private final PDFStoragePort pdfStoragePort;
 
     public PDFServiceImpl(
@@ -55,6 +58,7 @@ public class PDFServiceImpl implements PDFService {
             PDFMapper pdfMapper,
             UserEventService userEventService,
             UserAccountService userAccountService,
+            UserAccountDataService userAccountDataService,
             PDFStoragePort pdfStoragePort) {
         this.pdfDataService = pdfDataService;
         this.subjectUnitDataService = subjectUnitDataService;
@@ -62,6 +66,7 @@ public class PDFServiceImpl implements PDFService {
         this.pdfMapper = pdfMapper;
         this.userEventService = userEventService;
         this.userAccountService = userAccountService;
+        this.userAccountDataService = userAccountDataService;
         this.pdfStoragePort = pdfStoragePort;
     }
 
@@ -132,6 +137,7 @@ public class PDFServiceImpl implements PDFService {
         PDF pdf = pdfMapper.toEntity(dto);
         pdf.setLastTimeEdited(new Date());
         resolveSubjectAndUnit(pdf, dto.getSubjectId(), dto.getSubjectUnitId());
+        resolveAuthors(pdf, dto.getAuthorEmails());
 
         String key = newKey();
         pdf.setS3Key(key);
@@ -167,6 +173,7 @@ public class PDFServiceImpl implements PDFService {
         pdfMapper.updateEntity(toUpdate, dto);
         toUpdate.setLastTimeEdited(new Date());
         resolveSubjectAndUnit(toUpdate, dto.getSubjectId(), dto.getSubjectUnitId());
+        resolveAuthors(toUpdate, dto.getAuthorEmails());
 
         String oldKey = toUpdate.getS3Key();
         String newKey = null;
@@ -238,6 +245,37 @@ public class PDFServiceImpl implements PDFService {
         } else {
             target.setSubjectUnit(null);
         }
+    }
+
+    private void resolveAuthors(PDF target, List<String> authorEmails)
+            throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
+
+        if (authorEmails == null || authorEmails.isEmpty())
+            throw new MathtexpediaInvalidException("PDF must have at least one author");
+
+        List<String> emails = authorEmails.stream()
+                .map(email -> email.trim().toLowerCase())
+                .toList();
+
+        if (new HashSet<>(emails).size() != emails.size())
+            throw new MathtexpediaInvalidException("Author list contains duplicated users");
+
+        Map<String, UserAccount> usersByEmail = new HashMap<>();
+        for (UserAccount user : userAccountDataService.getByEmails(emails)) {
+            if (usersByEmail.put(user.getEmail().toLowerCase(), user) != null)
+                throw new MathtexpediaInvalidException("More than one user found with email: " + user.getEmail());
+        }
+
+        List<UserAccount> authors = new ArrayList<>(emails.size());
+        for (String email : emails) {
+            UserAccount author = usersByEmail.get(email);
+            if (author == null)
+                throw new MathtexpediaNotFoundException("User not found with email: " + email);
+            authors.add(author);
+        }
+
+        target.getAuthors().clear();
+        target.getAuthors().addAll(authors);
     }
 
     /** Clave opaca: renombrar o mover de tema no obliga a mover el objeto en S3. */

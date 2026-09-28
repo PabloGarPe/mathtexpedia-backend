@@ -24,7 +24,8 @@ public class PublicPDFController implements PublicEndpoint {
     }
 
     @Operation(summary = "Lista el catálogo de PDFs",
-            description = "Solo metadatos; el contenido se obtiene autenticado en GET /pdf/{pdfId}/content",
+            description = "Solo metadatos (incluidos el nombre del autor y los de los coautores); "
+                    + "el contenido se obtiene autenticado en GET /pdf/{pdfId}/content",
             security = { @SecurityRequirement })
     @GetMapping("no-link")
     public List<PDFDto> getPDFs() {
