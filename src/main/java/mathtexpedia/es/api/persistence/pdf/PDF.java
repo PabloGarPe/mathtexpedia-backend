@@ -12,8 +12,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
+import mathtexpedia.es.api.persistence.user.UserAccount;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -52,4 +55,13 @@ public class PDF {
     @ManyToOne
     @JoinColumn(name = "subject_unit_id")
     private SubjectUnit subjectUnit;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+            name = "pdf_author",
+            joinColumns = @JoinColumn(name = "pdf_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_account_id")
+    )
+    @OrderColumn(name = "author_order")
+    private List<UserAccount> authors = new ArrayList<>();
 }

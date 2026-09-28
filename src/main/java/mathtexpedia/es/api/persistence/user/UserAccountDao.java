@@ -8,6 +8,8 @@ import org.hibernate.Session;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -45,5 +47,24 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
         cq.select(root).where(cb.equal(root.get("externalId"), externalId));
 
         return session.createQuery(cq).stream().findFirst();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserAccount> getByEmails(Collection<String> emails) {
+        logger.trace("Finding user accounts by emails {}", emails);
+
+        if (emails.isEmpty())
+            return List.of();
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<UserAccount> cq = cb.createQuery(UserAccount.class);
+        Root<UserAccount> root = cq.from(UserAccount.class);
+
+        cq.select(root).where(cb.lower(root.get("email")).in(emails));
+
+        return session.createQuery(cq).getResultList();
     }
 }

@@ -1,5 +1,7 @@
 package mathtexpedia.es.api.persistence.user;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface UserAccountDataService {
@@ -9,5 +11,7 @@ public interface UserAccountDataService {
     UserAccount update(UserAccount user);
 
     Optional<UserAccount> getByExternalId(String externalId);
+
+    List<UserAccount> getByEmails(Collection<String> emails);
 
 }

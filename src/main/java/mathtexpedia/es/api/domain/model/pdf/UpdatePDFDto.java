@@ -3,10 +3,13 @@ package mathtexpedia.es.api.domain.model.pdf;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -27,4 +30,9 @@ public class UpdatePDFDto {
 
     @Schema(description = "Identificador de la unidad temática a la que pertenece el PDF. En caso de que el PDF sea general para toda la asignatura, este campo puede ser nulo.", nullable = true)
     private Long subjectUnitId;
+
+    @Schema(description = "Emails de los usuarios autores. El primero es el autor principal (obligatorio); el resto, coautores (opcionales)",
+            example = "[\"autor@mathtexpedia.es\", \"coautor@mathtexpedia.es\"]")
+    @NotEmpty
+    private List<@NotBlank String> authorEmails;
 }

@@ -65,12 +65,15 @@ public class PDFController extends GenericController {
 
 
     @Operation(summary = "Crea un nuevo PDF en el catálogo",
-            description = "multipart/form-data con la parte 'data' (JSON) y la parte 'file' (PDF). Requiere rol ADMIN")
+            description = "multipart/form-data con la parte 'data' (JSON) y la parte 'file' (PDF). "
+                    + "En 'data.authorEmails' se indican los emails de los autores: el primero es el autor principal "
+                    + "(obligatorio) y el resto, coautores (opcionales). Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "PDF creado"),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos o fichero no válido"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos, fichero no válido, lista de autores vacía, "
+                    + "emails de autores repetidos o email asociado a más de un usuario"),
             @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN"),
-            @ApiResponse(responseCode = "404", description = "No existe la asignatura o el tema indicados"),
+            @ApiResponse(responseCode = "404", description = "No existe la asignatura, el tema o algún usuario con los emails de autor indicados"),
             @ApiResponse(responseCode = "409", description = "Ya existe un PDF con ese nombre")
     })
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -92,12 +95,14 @@ public class PDFController extends GenericController {
 
     @Operation(summary = "Actualiza un PDF existente",
             description = "multipart/form-data con la parte 'data' (JSON) y, opcionalmente, la parte 'file' "
-                    + "si se quiere reemplazar el contenido. Requiere rol ADMIN")
+                    + "si se quiere reemplazar el contenido. 'data.authorEmails' sustituye por completo a los autores actuales: "
+                    + "el primero es el autor principal (obligatorio) y el resto, coautores (opcionales). Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "PDF actualizado"),
-            @ApiResponse(responseCode = "400", description = "Datos inválidos o fichero no válido"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos, fichero no válido, lista de autores vacía, "
+                    + "emails de autores repetidos o email asociado a más de un usuario"),
             @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN"),
-            @ApiResponse(responseCode = "404", description = "No existe el PDF, la asignatura o el tema indicados"),
+            @ApiResponse(responseCode = "404", description = "No existe el PDF, la asignatura, el tema o algún usuario con los emails de autor indicados"),
             @ApiResponse(responseCode = "409", description = "Ya existe un PDF con ese nombre")
     })
     @PutMapping(value = "/update/{pdfId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

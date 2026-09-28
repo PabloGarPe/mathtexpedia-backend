@@ -3,8 +3,11 @@ package mathtexpedia.es.api.domain.model.pdf;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -25,12 +28,18 @@ public class CreatePDFDto {
     @Schema(description = "Descripción opcional del contenido del PDF")
     private String description;
 
+    @Schema(description = "Emails de los usuarios autores. El primero es el autor principal (obligatorio); el resto, coautores (opcionales)",
+            example = "[\"autor@mathtexpedia.es\", \"coautor@mathtexpedia.es\"]")
+    @NotEmpty
+    private List<@NotBlank String> authorEmails;
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("PDF [name=").append(name)
                 .append(", description=").append(description)
-                .append(", subjectId=").append(subjectId);
+                .append(", subjectId=").append(subjectId)
+                .append(", authorEmails=").append(authorEmails);
         if (subjectUnitId != null) {
             sb.append(", subjectUnitId=").append(subjectUnitId);
         }
