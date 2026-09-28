@@ -15,14 +15,14 @@ import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
-import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
-import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
-import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.*;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
 import mathtexpedia.es.api.service.question.QuestionService;
 import mathtexpedia.es.api.service.quiz.QuizService;
 import mathtexpedia.es.api.service.quizAttempt.QuizAttemptService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -222,5 +222,36 @@ public class QuizController extends GenericController {
         logger.debug("Called getAttemptsForQuiz with id: {}", id);
 
         return quizAttemptService.getAttemptsForQuiz(id, user);
+    }
+
+    @Operation(summary = "Obtiene las estadísticas de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponse(responseCode = "200", description = "Estadísticas de cuestionario obtenidas correctamente")
+    @ApiResponse(responseCode = "401", description = "No autorizado")
+    @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    @GetMapping("/{id}/stats")
+    public ResponseEntity<QuizAttemptStatsDto> getUserStatsForQuiz(
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaNotFoundException, MathtexpediaUnauthorizedException {
+        logger.debug("Called getStatsForQuiz with id: {}", id);
+
+        return ResponseEntity.ok(quizAttemptService.getMyStatsForQuiz(id, user));
+    }
+
+    @Operation(summary = "Obtiene la tabla de líderes de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @ApiResponse(responseCode = "200", description = "Tabla de líderes obtenida correctamente")
+    @ApiResponse(responseCode = "401", description = "No autorizado")
+    @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    @GetMapping("/{id}/leaderboard")
+    public Page<LeaderboardEntryDto> getLeaderboardForQuiz(
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id,
+            @Parameter(description = "Parámetros de paginación")
+            Pageable pageable
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getLeaderboardForQuiz with id: {} and pageable: {}", id, pageable);
+
+        return quizAttemptService.getLeaderboardForQuiz(id, pageable);
     }
 }

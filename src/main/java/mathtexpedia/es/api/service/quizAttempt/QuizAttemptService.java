@@ -2,9 +2,7 @@ package mathtexpedia.es.api.service.quizAttempt;
 
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
-import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptDto;
-import mathtexpedia.es.api.domain.model.quizAttempt.QuizAttemptResultDto;
-import mathtexpedia.es.api.domain.model.quizAttempt.SubmitQuizAttemptDto;
+import mathtexpedia.es.api.domain.model.quizAttempt.*;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,4 +16,10 @@ public interface QuizAttemptService {
     Page<QuizAttemptDto> getMyAttempts(UserProfile user, Pageable pageable) throws MathtexpediaUnauthorizedException;
 
     List<QuizAttemptDto> getAttemptsForQuiz(long quizId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException;
+
+    QuizAttemptStatsDto getMyStats(UserProfile user) throws MathtexpediaUnauthorizedException;
+
+    QuizAttemptStatsDto getMyStatsForQuiz(long quizId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException;
+
+    Page<LeaderboardEntryDto> getLeaderboardForQuiz(long quizId, Pageable pageable) throws MathtexpediaNotFoundException;
 }

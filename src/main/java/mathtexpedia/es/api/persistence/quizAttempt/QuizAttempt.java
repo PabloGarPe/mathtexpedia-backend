@@ -31,4 +31,14 @@ public class QuizAttempt {
 
     @Column(nullable = false, updatable = false)
     private Instant submittedAt;
+
+    private int correctAnswers;
+
+    private int unansweredQuestions;
+
+    @Column(nullable = false)
+    private int attemptNumber;
+
+    @Column(nullable = false)
+    private double adjustedScore;
 }
