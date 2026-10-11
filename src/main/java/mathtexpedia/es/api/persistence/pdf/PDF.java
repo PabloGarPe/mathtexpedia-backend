@@ -24,7 +24,7 @@ import java.util.List;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Table(uniqueConstraints = {
-        @UniqueConstraint(columnNames = "name")
+        @UniqueConstraint(name = "uk_pdf_name_subject", columnNames = {"name", "subject_id"})
 })
 public class PDF {
 
@@ -34,7 +34,6 @@ public class PDF {
     private long id;
 
     @NotBlank
-    @Column(unique = true)
     @JsonProperty("pdf_name")
     private String name;
 
