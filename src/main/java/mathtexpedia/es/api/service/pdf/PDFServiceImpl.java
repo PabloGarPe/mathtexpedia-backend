@@ -131,8 +131,9 @@ public class PDFServiceImpl implements PDFService {
 
         validateFile(file);
 
-        if (pdfDataService.getPDF(dto.getName()).isPresent())
-            throw new MathtexpediaConflictException("PDF already exists with name: " + dto.getName());
+        if (pdfDataService.findByNameAndSubjectId(dto.getName(), dto.getSubjectId()).isPresent())
+            throw new MathtexpediaConflictException(
+                    "PDF already exists with name: " + dto.getName() + " in subject with id: " + dto.getSubjectId());
 
         PDF pdf = pdfMapper.toEntity(dto);
         pdf.setLastTimeEdited(new Date());
@@ -162,9 +163,10 @@ public class PDFServiceImpl implements PDFService {
 
         PDF toUpdate = findByIdOrThrow(pdfId);
 
-        Optional<PDF> sameName = pdfDataService.getPDF(dto.getName());
+        Optional<PDF> sameName = pdfDataService.findByNameAndSubjectId(dto.getName(), dto.getSubjectId());
         if (sameName.isPresent() && !Objects.equals(sameName.get().getId(), pdfId))
-            throw new MathtexpediaConflictException("PDF already exists with name: " + dto.getName());
+            throw new MathtexpediaConflictException(
+                    "PDF already exists with name: " + dto.getName() + " in subject with id: " + dto.getSubjectId());
 
         boolean replaceFile = file != null && !file.isEmpty();
         if (replaceFile)

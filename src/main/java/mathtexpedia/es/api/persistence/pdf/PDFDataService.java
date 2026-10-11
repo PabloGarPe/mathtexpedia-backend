@@ -22,4 +22,6 @@ public interface PDFDataService {
     PDF updatePDF(PDF pdf);
 
     Optional<PDF> getPDFById(long pdfId);
+
+    Optional<PDF> findByNameAndSubjectId(String name, Long subjectId);
 }
