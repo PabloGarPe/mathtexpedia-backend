@@ -209,7 +209,7 @@ public class QuizController extends GenericController {
         return quizAttemptService.submitAttempt(id, dto, user);
     }
 
-    @Operation(summary = "Obtiene los intentos de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene mis intentos de un cuestionario", description = "Devuelve únicamente los intentos del usuario autenticado en este cuestionario, ordenados del más reciente al más antiguo; nunca los de otros usuarios. Para mostrar solo la mejor puntuación o saber si ya lo ha intentado, usar GET /quiz/{id}/stats. Requiere autenticación, pero no requiere rol ADMIN")
     @ApiResponse(responseCode = "200", description = "Intentos de cuestionario obtenidos correctamente")
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
@@ -224,7 +224,7 @@ public class QuizController extends GenericController {
         return quizAttemptService.getAttemptsForQuiz(id, user);
     }
 
-    @Operation(summary = "Obtiene las estadísticas de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene mis estadísticas de un cuestionario", description = "Estadísticas agregadas de los intentos del usuario autenticado en este cuestionario (totalAttempts, bestScore sobre 10, etc.). Si totalAttempts es 0 el usuario aún no lo ha intentado y el resto de valores son 0. Requiere autenticación, pero no requiere rol ADMIN")
     @ApiResponse(responseCode = "200", description = "Estadísticas de cuestionario obtenidas correctamente")
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
