@@ -2,6 +2,8 @@ package mathtexpedia.es.api.persistence.userEvent;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import mathtexpedia.es.api.domain.model.userEvent.EventType;
 import mathtexpedia.es.api.persistence.user.UserAccount;
 
@@ -24,6 +26,7 @@ public class UserEvent {
     @Column(nullable = false)
     private EventType eventType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(columnDefinition = "jsonb")
     private String payload;
 

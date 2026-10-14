@@ -20,6 +20,7 @@ import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.persistence.user.UserAccountDataService;
+import mathtexpedia.es.api.persistence.userEvent.UserEventDataService;
 import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.slf4j.Logger;
@@ -41,6 +42,8 @@ public class PDFServiceImpl implements PDFService {
     private static final String PDF_CONTENT_TYPE = "application/pdf";
     private static final byte[] PDF_MAGIC = "%PDF-".getBytes(StandardCharsets.US_ASCII);
     private static final String KEY_PREFIX = "pdfs/";
+    private static final int DEFAULT_FEED_LIMIT = 10;
+    private static final int MAX_FEED_LIMIT = 20;
 
     private final PDFDataService pdfDataService;
     private final SubjectUnitDataService subjectUnitDataService;
@@ -50,6 +53,7 @@ public class PDFServiceImpl implements PDFService {
     private final UserAccountService userAccountService;
     private final UserAccountDataService userAccountDataService;
     private final PDFStoragePort pdfStoragePort;
+    private final UserEventDataService userEventDataService;
 
     public PDFServiceImpl(
             PDFDataService pdfDataService,
@@ -59,7 +63,8 @@ public class PDFServiceImpl implements PDFService {
             UserEventService userEventService,
             UserAccountService userAccountService,
             UserAccountDataService userAccountDataService,
-            PDFStoragePort pdfStoragePort) {
+            PDFStoragePort pdfStoragePort,
+            UserEventDataService userEventDataService) {
         this.pdfDataService = pdfDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.subjectDataService = subjectDataService;
@@ -68,6 +73,7 @@ public class PDFServiceImpl implements PDFService {
         this.userAccountService = userAccountService;
         this.userAccountDataService = userAccountDataService;
         this.pdfStoragePort = pdfStoragePort;
+        this.userEventDataService = userEventDataService;
     }
 
 
@@ -75,10 +81,29 @@ public class PDFServiceImpl implements PDFService {
     public List<PDFDto> getPDFs() {
         logger.info("Fetching all PDFs");
 
-        return pdfDataService.getAll()
-                .stream()
-                .map(pdfMapper::toDto)
-                .toList();
+        return toDtos(pdfDataService.getAll());
+    }
+
+    @Override
+    public List<PDFDto> getRecentPDFs(Integer limit) {
+        logger.info("Fetching recent PDFs (limit: {})", limit);
+
+        return toDtos(pdfDataService.getRecent(normalizeLimit(limit)));
+    }
+
+    @Override
+    public List<PDFDto> getTopViewedPDFs(Integer limit) {
+        logger.info("Fetching most viewed PDFs (limit: {})", limit);
+
+        return toDtosInOrder(userEventDataService.getTopViewedPdfIds(normalizeLimit(limit)));
+    }
+
+    @Override
+    public List<PDFDto> getTopViewedPDFsForUser(UserProfile user, Integer limit) throws MathtexpediaUnauthorizedException {
+        logger.info("Fetching most viewed PDFs for user: {} (limit: {})", user.getId(), limit);
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        return toDtosInOrder(userEventDataService.getTopViewedPdfIdsByUser(account.getId(), normalizeLimit(limit)));
     }
 
     @Override
@@ -104,10 +129,7 @@ public class PDFServiceImpl implements PDFService {
         if (subjectUnitDataService.getById(subjectUnitId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId);
 
-        return pdfDataService.getAllForSubjectUnit(subjectUnitId)
-                .stream()
-                .map(pdfMapper::toDto)
-                .toList();
+        return toDtos(pdfDataService.getAllForSubjectUnit(subjectUnitId));
     }
 
     @Override
@@ -117,10 +139,7 @@ public class PDFServiceImpl implements PDFService {
         if (subjectDataService.getById(subjectId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
 
-        return pdfDataService.getAllForSubject(subjectId)
-                .stream()
-                .map(pdfMapper::toDto)
-                .toList();
+        return toDtos(pdfDataService.getAllForSubject(subjectId));
     }
 
 
@@ -147,7 +166,7 @@ public class PDFServiceImpl implements PDFService {
 
         try {
             PDF created = pdfDataService.createPDF(pdf);
-            return pdfMapper.toDto(created);
+            return pdfMapper.toDto(created, 0);
         } catch (RuntimeException e) {
             safeDelete(key);
             if (e instanceof PersistenceException)
@@ -200,7 +219,7 @@ public class PDFServiceImpl implements PDFService {
         if (newKey != null)
             safeDelete(oldKey);
 
-        return pdfMapper.toDto(updated);
+        return toDtos(List.of(updated)).get(0);
     }
 
     @Override
@@ -212,6 +231,26 @@ public class PDFServiceImpl implements PDFService {
 
         pdfDataService.deletePDF(toDelete);
         safeDelete(key);
+    }
+
+    private int normalizeLimit(Integer limit) {
+        if (limit == null)
+            return DEFAULT_FEED_LIMIT;
+        return Math.max(1, Math.min(limit, MAX_FEED_LIMIT));
+    }
+
+    private List<PDFDto> toDtos(List<PDF> pdfs) {
+        Map<Long, Long> views = userEventDataService.countPdfViews(pdfs.stream().map(PDF::getId).toList());
+        return pdfs.stream()
+                .map(pdf -> pdfMapper.toDto(pdf, views.getOrDefault(pdf.getId(), 0L)))
+                .toList();
+    }
+
+    private List<PDFDto> toDtosInOrder(List<Long> orderedIds) {
+        Map<Long, PDF> byId = new HashMap<>();
+        pdfDataService.getByIds(orderedIds).forEach(pdf -> byId.put(pdf.getId(), pdf));
+
+        return toDtos(orderedIds.stream().map(byId::get).filter(Objects::nonNull).toList());
     }
 
     private PDF findByIdOrThrow(long pdfId) throws MathtexpediaNotFoundException {
