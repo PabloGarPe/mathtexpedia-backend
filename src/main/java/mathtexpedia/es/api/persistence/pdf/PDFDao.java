@@ -8,6 +8,7 @@ import org.hibernate.Session;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -127,6 +128,34 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
         Root<PDF> root = cq.from(PDF.class);
         cq.select(root).where(cb.equal(root.get("id"), pdfId));
         return session.createQuery(cq).getResultList().stream().findFirst();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PDF> getRecent(int limit) {
+        logger.trace("Getting {} most recent PDFs", limit);
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+        cq.select(root).where(cb.isNotNull(root.get("lastTimeEdited")))
+                .orderBy(cb.desc(root.get("lastTimeEdited")), cb.desc(root.get("id")));
+        return session.createQuery(cq).setMaxResults(limit).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PDF> getByIds(Collection<Long> pdfIds) {
+        if (pdfIds == null || pdfIds.isEmpty())
+            return List.of();
+
+        logger.trace("Getting PDFs with ids {}", pdfIds);
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+        cq.select(root).where(root.get("id").in(pdfIds));
+        return session.createQuery(cq).getResultList();
     }
 
     @Override
