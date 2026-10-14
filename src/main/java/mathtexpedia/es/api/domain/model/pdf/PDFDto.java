@@ -27,4 +27,8 @@ public class PDFDto {
     @Schema(description = "Nombres de los coautores, en el orden en que se indicaron. Vacío si no hay coautores",
             example = "[\"Alan Turing\"]")
     private List<String> coauthors;
+
+    @Schema(description = "Número total de veces que se ha abierto el PDF (todos los usuarios; cada apertura cuenta, aunque sea del mismo usuario). 0 si nunca se ha visto",
+            example = "42")
+    private long viewCount;
 }

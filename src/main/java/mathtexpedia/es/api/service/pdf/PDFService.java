@@ -3,6 +3,7 @@ package mathtexpedia.es.api.service.pdf;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFContent;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
@@ -18,6 +19,12 @@ public interface PDFService {
     List<PDFDto> getPDFs();
 
     PDFContent getPDFContent(long pdfId, UserProfile user) throws MathtexpediaNotFoundException;
+
+    List<PDFDto> getRecentPDFs(Integer limit);
+
+    List<PDFDto> getTopViewedPDFs(Integer limit);
+
+    List<PDFDto> getTopViewedPDFsForUser(UserProfile user, Integer limit) throws MathtexpediaUnauthorizedException;
 
     List<PDFDto> getPDFsBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
 

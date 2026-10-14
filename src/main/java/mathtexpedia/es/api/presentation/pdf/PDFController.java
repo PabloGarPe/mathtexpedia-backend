@@ -28,6 +28,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @Tag(name = "PDFs", description = "Gestión de PDFs (consulta requiere estar autenticado; crear/borrar/actualizar requiere rol ADMIN)")
 @RestController
 @RequestMapping("/pdf")
@@ -63,6 +65,23 @@ public class PDFController extends GenericController {
                 .body(new InputStreamResource(content.stream()));
     }
 
+
+    @Operation(summary = "PDFs más vistos por el usuario autenticado",
+            description = "Ordenados de más a menos aperturas hechas por el usuario del token. Si aún no ha visto ningún PDF "
+                    + "devuelve una lista vacía (el front puede ocultar la hilera). 'viewCount' de cada PDF sigue siendo el total general")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de PDFs (puede estar vacía)"),
+            @ApiResponse(responseCode = "401", description = "Sin token válido o cuenta de usuario inactiva")
+    })
+    @GetMapping("/top/me")
+    public ResponseEntity<List<PDFDto>> getMyTopViewedPDFs(
+            @Parameter(description = "Máximo de PDFs a devolver (por defecto 10, máximo 20)")
+            @RequestParam(required = false) Integer limit,
+            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException {
+        logger.debug("Called receive to get top viewed PDFs of user {}", user.getId());
+
+        return ResponseEntity.ok(pdfService.getTopViewedPDFsForUser(user, limit));
+    }
 
     @Operation(summary = "Crea un nuevo PDF en el catálogo",
             description = "multipart/form-data con la parte 'data' (JSON) y la parte 'file' (PDF). "

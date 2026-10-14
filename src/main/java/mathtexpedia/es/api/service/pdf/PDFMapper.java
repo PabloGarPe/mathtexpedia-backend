@@ -36,7 +36,7 @@ public class PDFMapper {
         target.setDescription(dto.getDescription());
     }
 
-    public PDFDto toDto(PDF pdf) {
+    public PDFDto toDto(PDF pdf, long viewCount) {
         List<String> authorNames = pdf.getAuthors().stream().map(UserAccount::getName).toList();
 
         return new PDFDto(
@@ -47,7 +47,8 @@ public class PDFMapper {
                 subjectMapper.toDto(pdf.getSubject()),
                 pdf.getSubjectUnit() != null ? subjectUnitMapper.toDto(pdf.getSubjectUnit()) : null,
                 authorNames.isEmpty() ? null : authorNames.get(0),
-                authorNames.size() > 1 ? authorNames.subList(1, authorNames.size()) : List.of()
+                authorNames.size() > 1 ? authorNames.subList(1, authorNames.size()) : List.of(),
+                viewCount
         );
     }
 }
