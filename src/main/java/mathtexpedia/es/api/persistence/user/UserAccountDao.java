@@ -55,6 +55,33 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<UserAccount> getById(long id) {
+        logger.trace("Finding user account by id {}", id);
+
+        return Optional.ofNullable(em.find(UserAccount.class, id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean usernameTaken(String username, long excludingId) {
+        logger.trace("Checking if username '{}' is taken (excluding user {})", username, excludingId);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<UserAccount> root = cq.from(UserAccount.class);
+
+        cq.select(root.get("id")).where(
+                cb.equal(root.get("usernameNormalized"), username.toLowerCase(Locale.ROOT)),
+                cb.notEqual(root.get("id"), excludingId)
+        );
+
+        return !session.createQuery(cq).setMaxResults(1).getResultList().isEmpty();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<UserAccount> getByEmails(Collection<String> emails) {
         logger.trace("Finding user accounts by emails {}", emails);
 
@@ -86,7 +113,9 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
         // unaccent (extensión de Postgres) en ambos lados: "garcia" encuentra "García". Solo afecta a la comparación
         Expression<String> pattern = unaccent(cb, cb.literal("%" + escapeLike(term.toLowerCase(Locale.ROOT)) + "%"));
         Expression<String> email = unaccent(cb, cb.lower(root.get("email")));
-        Expression<String> name = unaccent(cb, cb.lower(root.get("name")));
+        Expression<String> username = unaccent(cb, cb.lower(root.get("username")));
+        Expression<String> fullName = unaccent(cb, cb.lower(cb.concat(cb.concat(
+                cb.coalesce(root.<String>get("firstName"), ""), " "), cb.coalesce(root.<String>get("lastName"), ""))));
 
         cq.select(root)
                 .where(
@@ -94,10 +123,11 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
                         cb.isNotNull(root.get("email")),
                         cb.or(
                                 cb.like(email, pattern, LIKE_ESCAPE),
-                                cb.like(name, pattern, LIKE_ESCAPE)
+                                cb.like(username, pattern, LIKE_ESCAPE),
+                                cb.like(fullName, pattern, LIKE_ESCAPE)
                         )
                 )
-                .orderBy(cb.asc(cb.coalesce(name, email)), cb.asc(root.get("id")));
+                .orderBy(cb.asc(cb.coalesce(username, email)), cb.asc(root.get("id")));
 
         return session.createQuery(cq).setMaxResults(limit).getResultList();
     }

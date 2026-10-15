@@ -2,10 +2,13 @@ package mathtexpedia.es.api.persistence.user;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
 
 import java.time.Instant;
+import java.util.Locale;
 
 @Entity
 @Data
@@ -21,7 +24,33 @@ public class UserAccount {
 
     private String email;
 
-    private String name;
+    /** Nombre público que se muestra en la aplicación. Nulo hasta que el usuario completa el perfil. */
+    @Column(length = 30)
+    private String username;
+
+    /** {@code username} en minúsculas: soporta la unicidad sin distinguir mayúsculas. Lo mantiene {@link #setUsername}. */
+    @Column(name = "username_normalized", length = 30, unique = true)
+    @Setter(AccessLevel.NONE)
+    private String usernameNormalized;
+
+    @Column(name = "first_name", length = 100)
+    private String firstName;
+
+    @Column(name = "last_name", length = 100)
+    private String lastName;
+
+    @Column(length = 280)
+    private String bio;
+
+    @Column(length = 150)
+    private String university;
+
+    @Column(length = 150)
+    private String studies;
+
+    /** Última vez que se cambió la foto de perfil; nulo si no tiene. Sirve también como versión para la caché. */
+    @Column(name = "avatar_updated_at")
+    private Instant avatarUpdatedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -35,4 +64,13 @@ public class UserAccount {
 
     @Column(name = "profile_completed_at")
     private Instant profileCompletedAt;
+
+    public void setUsername(String username) {
+        this.username = username;
+        this.usernameNormalized = username == null ? null : username.toLowerCase(Locale.ROOT);
+    }
+
+    public boolean hasAvatar() {
+        return avatarUpdatedAt != null;
+    }
 }

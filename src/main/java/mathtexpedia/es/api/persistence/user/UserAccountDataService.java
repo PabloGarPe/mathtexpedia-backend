@@ -14,9 +14,14 @@ public interface UserAccountDataService {
 
     List<UserAccount> getByEmails(Collection<String> emails);
 
+    Optional<UserAccount> getById(long id);
+
+    /** Si otro usuario (distinto de {@code excludingId}) ya tiene ese username, sin distinguir mayúsculas. */
+    boolean usernameTaken(String username, long excludingId);
+
     /**
-     * Usuarios ACTIVE cuyo nombre o email contiene el término (sin distinguir mayúsculas ni tildes), ordenados por nombre
-     * (o email si no tienen nombre). Requiere la extensión 'unaccent' de Postgres.
+     * Usuarios ACTIVE cuyo username, nombre, apellidos o email contiene el término (sin distinguir mayúsculas ni tildes),
+     * ordenados por username (o email si no tienen). Requiere la extensión 'unaccent' de Postgres.
      */
     List<UserAccount> searchActive(String term, int limit);
 
