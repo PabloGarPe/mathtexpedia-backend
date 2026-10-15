@@ -13,6 +13,8 @@ public class QuizAttemptMapper {
         QuizAttemptDto dto = new QuizAttemptDto();
         dto.setId(attempt.getId());
         dto.setScore(attempt.getScore());
+        dto.setAdjustedScore(attempt.getAdjustedScore());
+        dto.setAttemptNumber(attempt.getAttemptNumber());
         dto.setSubmittedAt(attempt.getSubmittedAt());
         dto.setTotalQuestions(attempt.getTotalQuestions());
         if (attempt.getQuiz() != null) dto.setQuizId(attempt.getQuiz().getId());

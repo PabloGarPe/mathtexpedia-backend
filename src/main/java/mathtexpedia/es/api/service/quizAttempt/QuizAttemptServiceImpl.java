@@ -90,6 +90,8 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
 
         QuizAttempt savedAttempt = quizAttemptDataService.createQuizAttempt(attempt);
         result.setId(savedAttempt.getId());
+        result.setAttemptNumber(attemptNumber);
+        result.setAdjustedScore(adjustedScore);
 
         for (AttemptAnswerResultDto answerResult : result.getAnswers()) {
             AttemptAnswer answerEntity = new AttemptAnswer();
