@@ -3,6 +3,7 @@ package mathtexpedia.es.api.service.userAccount;
 import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.userAccount.AuthorCandidateDto;
 import mathtexpedia.es.api.domain.model.userAccount.UpdateUserAccountDto;
 import mathtexpedia.es.api.domain.model.userAccount.UserAccountDto;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
@@ -15,12 +16,17 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 @Service
 public class UserAccountServiceImpl implements UserAccountService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAccountServiceImpl.class);
+
+    private static final int MIN_SEARCH_LENGTH = 2;
+    private static final int DEFAULT_SEARCH_LIMIT = 10;
+    private static final int MAX_SEARCH_LIMIT = 20;
 
     private final UserAccountDataService userAccountDataService;
     private final UserAccountMapper userAccountMapper;
@@ -72,6 +78,21 @@ public class UserAccountServiceImpl implements UserAccountService {
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating user account for external ID: " + profile.getId(), e);
         }
+    }
+
+    @Override
+    public List<AuthorCandidateDto> searchAuthorCandidates(String query, Integer limit) {
+        logger.info("Searching author candidates (query length: {}, limit: {})", query == null ? 0 : query.length(), limit);
+
+        String term = query == null ? "" : query.trim();
+        if (term.length() < MIN_SEARCH_LENGTH)
+            return List.of();
+
+        int normalizedLimit = limit == null ? DEFAULT_SEARCH_LIMIT : Math.max(1, Math.min(limit, MAX_SEARCH_LIMIT));
+
+        return userAccountDataService.searchActive(term, normalizedLimit).stream()
+                .map(userAccountMapper::toAuthorCandidateDto)
+                .toList();
     }
 
     @Override

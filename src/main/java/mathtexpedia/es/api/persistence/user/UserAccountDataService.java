@@ -14,4 +14,10 @@ public interface UserAccountDataService {
 
     List<UserAccount> getByEmails(Collection<String> emails);
 
+    /**
+     * Usuarios ACTIVE cuyo nombre o email contiene el término (sin distinguir mayúsculas), ordenados por nombre
+     * (o email si no tienen nombre).
+     */
+    List<UserAccount> searchActive(String term, int limit);
+
 }
