@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
@@ -128,6 +129,14 @@ public class GenericController {
     /** Cuerpo JSON ilegible o con valores inválidos (p. ej. un enum desconocido): es un error del cliente, no del servidor. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        logErrorAndHttpResponse(e, "400", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    /** Falta una parte obligatoria de una petición multipart (p. ej. el fichero): error del cliente. */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    protected ResponseEntity<Object> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
         logErrorAndHttpResponse(e, "400", Level.WARN);
 
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
