@@ -3,7 +3,9 @@ package mathtexpedia.es.api.service.quiz;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.quiz.*;
+import mathtexpedia.es.api.domain.security.UserProfile;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +19,10 @@ public interface QuizService {
 
     /** Los cuestionarios creados o editados más recientemente. */
     List<QuizDto> getRecentQuizzes(Integer limit, boolean includeHidden);
+
+    /** Los cuestionarios más recientes de las asignaturas a las que está suscrito el usuario (vacío si no tiene suscripciones). */
+    List<QuizDto> getRecentQuizzesForSubscriber(UserProfile user, Integer limit, boolean includeHidden)
+            throws MathtexpediaUnauthorizedException;
 
     /** Los cuestionarios más hechos en general (todos los usuarios). */
     List<QuizDto> getMostAttemptedQuizzes(Integer limit, boolean includeHidden);

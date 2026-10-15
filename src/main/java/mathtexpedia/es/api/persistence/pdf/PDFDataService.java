@@ -26,6 +26,9 @@ public interface PDFDataService {
 
     List<PDF> getRecent(int limit);
 
+    /** Como {@link #getRecent(int)} pero solo de las asignaturas indicadas. */
+    List<PDF> getRecentBySubjects(Collection<Long> subjectIds, int limit);
+
     List<PDF> getByIds(Collection<Long> pdfIds);
 
     Optional<PDF> findByNameAndSubjectId(String name, Long subjectId);

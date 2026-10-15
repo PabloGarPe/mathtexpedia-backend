@@ -145,6 +145,22 @@ public class PDFDao extends GenericJPADao implements PDFDataService{
 
     @Override
     @Transactional(readOnly = true)
+    public List<PDF> getRecentBySubjects(Collection<Long> subjectIds, int limit) {
+        if (subjectIds == null || subjectIds.isEmpty())
+            return List.of();
+
+        logger.trace("Getting {} most recent PDFs of subjects {}", limit, subjectIds);
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+        CriteriaQuery<PDF> cq = cb.createQuery(PDF.class);
+        Root<PDF> root = cq.from(PDF.class);
+        cq.select(root).where(cb.isNotNull(root.get("lastTimeEdited")), root.get("subject").get("id").in(subjectIds))
+                .orderBy(cb.desc(root.get("lastTimeEdited")), cb.desc(root.get("id")));
+        return session.createQuery(cq).setMaxResults(limit).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PDF> getByIds(Collection<Long> pdfIds) {
         if (pdfIds == null || pdfIds.isEmpty())
             return List.of();

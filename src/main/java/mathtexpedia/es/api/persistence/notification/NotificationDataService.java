@@ -16,12 +16,16 @@ public interface NotificationDataService {
     /**
      * Reparte la notificación por el canal in-app con una única sentencia INSERT ... SELECT.
      * Solo recibe usuarios ACTIVE, respeta la preferencia del usuario para el tipo (si es configurable) y excluye al
-     * actor y a los usuarios indicados.
+     * actor y a los usuarios indicados. Si el tipo admite el alcance SUBSCRIBED, quien lo haya elegido solo la recibe
+     * cuando está suscrito a la asignatura de la notificación.
      *
      * @param targetUserIds destinatarios; {@code null} significa todos los usuarios activos
+     * @param subjectId asignatura de la notificación; hace falta para evaluar el alcance SUBSCRIBED y {@code onlySubscribers}
+     * @param onlySubscribers si es true, solo reciben la notificación los suscritos a {@code subjectId}
      * @return número de entregas creadas
      */
     int fanOutInApp(long notificationId, NotificationType type, Collection<Long> targetUserIds,
+                    Long subjectId, boolean onlySubscribers,
                     String excludedExternalId, Collection<Long> excludedUserIds);
 
     /** Bandeja del usuario, de más reciente a más antigua. */

@@ -44,7 +44,7 @@ public class Notification {
     @Column(name = "resource_id")
     private Long resourceId;
 
-    /** Asignatura relacionada, desnormalizada para poder filtrar por ella (suscripciones, #70). */
+    /** Asignatura relacionada, desnormalizada para poder filtrar por ella (suscripciones). */
     @Column(name = "subject_id")
     private Long subjectId;
 
