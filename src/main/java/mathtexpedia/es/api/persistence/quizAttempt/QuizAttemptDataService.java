@@ -25,7 +25,7 @@ public interface QuizAttemptDataService {
     Map<Long, Long> countAttemptsByQuizIds(Collection<Long> quizIds);
 
     /** Ids de los cuestionarios más hechos en general (al menos un intento), de más a menos. */
-    List<Long> getMostAttemptedQuizIds(int limit);
+    List<Long> getMostAttemptedQuizIds(int limit, boolean visibleOnly);
 
     /** Borra todos los intentos de un cuestionario. Antes hay que borrar sus respuestas ({@code AttemptAnswerDataService.deleteByQuizId}). */
     void deleteByQuizId(long quizId);

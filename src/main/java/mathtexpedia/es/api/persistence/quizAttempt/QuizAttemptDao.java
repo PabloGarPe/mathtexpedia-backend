@@ -178,11 +178,12 @@ public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataServ
 
     @Override
     @Transactional(readOnly = true)
-    public List<Long> getMostAttemptedQuizIds(int limit) {
+    public List<Long> getMostAttemptedQuizIds(int limit, boolean visibleOnly) {
         logger.trace("Getting top {} most attempted quizzes", limit);
 
         return em.createQuery(
-                "SELECT a.quiz.id FROM QuizAttempt a GROUP BY a.quiz.id " +
+                "SELECT a.quiz.id FROM QuizAttempt a " + (visibleOnly ? "WHERE a.quiz.visible = true " : "") +
+                        "GROUP BY a.quiz.id " +
                         "ORDER BY COUNT(a) DESC, MAX(a.submittedAt) DESC, a.quiz.id DESC",
                 Long.class
         ).setMaxResults(limit).getResultList();

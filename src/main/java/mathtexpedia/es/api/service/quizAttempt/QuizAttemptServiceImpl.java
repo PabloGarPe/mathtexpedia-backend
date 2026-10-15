@@ -9,6 +9,7 @@ import mathtexpedia.es.api.domain.model.question.QuestionForCorrectionDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForCorrectionDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.*;
 import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.domain.security.UserRole;
 import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswer;
 import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswerDataService;
 import mathtexpedia.es.api.persistence.option.Option;
@@ -67,12 +68,12 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
     public QuizAttemptResultDto submitAttempt(long quizId, SubmitQuizAttemptDto dto, UserProfile user) throws MathtexpediaNotFoundException, MathtexpediaUnauthorizedException {
         logger.info("Submitting quiz attempt for quizId: {}, userId: {}", quizId, user.getId());
 
+        Quiz quiz = findAccessibleQuiz(quizId, user);
+
         QuizForCorrectionDto quizForCorrection = quizService.getQuizForCorrection(quizId);
         QuizAttemptResultDto result = correctAnswers(quizForCorrection, dto);
 
         UserAccount account = userAccountService.getOrProvision(user);
-        Quiz quiz = quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         int attemptNumber = (int) quizAttemptDataService.countByQuizIdAndUserId(quizId, account.getId()) + 1;
         double adjustedScore = AttemptScoreCalculator.adjustedScore(result.getScore(), attemptNumber);
@@ -129,8 +130,7 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         logger.info("Fetching all attempts for quizId: {}, userId: {}", quizId, user.getId());
 
         UserAccount account = userAccountService.getOrProvision(user);
-        quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
+        findAccessibleQuiz(quizId, user);
 
         return quizAttemptDataService.getByQuizIdAndUserId(quizId, account.getId())
                 .stream()
@@ -152,17 +152,17 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         logger.info("Fetching quiz attempt stats for quizId: {}, userId: {}", quizId, user.getId());
 
         UserAccount account = userAccountService.getOrProvision(user);
-        quizDataService.getById(quizId)
-                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
+        findAccessibleQuiz(quizId, user);
 
         return quizAttemptMapper.toDto(quizAttemptDataService.getStatsByQuizIdAndUserId(quizId, account.getId()));
     }
 
     @Override
-    public Page<LeaderboardEntryDto> getLeaderboardForQuiz(long quizId, Pageable pageable) throws MathtexpediaNotFoundException {
+    public Page<LeaderboardEntryDto> getLeaderboardForQuiz(long quizId, Pageable pageable, boolean includeHidden) throws MathtexpediaNotFoundException {
         logger.info("Fetching leaderboard for quizId: {}", quizId);
 
         quizDataService.getById(quizId)
+                .filter(quiz -> includeHidden || quiz.isVisible())
                 .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         Page<LeaderboardRow> rows = quizAttemptDataService.getLeaderboardForQuiz(quizId, pageable);
@@ -176,6 +176,14 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         }
 
         return new PageImpl<>(content, pageable, rows.getTotalElements());
+    }
+
+    /** Los cuestionarios ocultos no existen para los no administradores. */
+    private Quiz findAccessibleQuiz(long quizId, UserProfile user) throws MathtexpediaNotFoundException {
+        boolean admin = UserRole.ADMIN.equals(user.getRole());
+        return quizDataService.getById(quizId)
+                .filter(quiz -> admin || quiz.isVisible())
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
     }
 
     private QuizAttemptResultDto correctAnswers(QuizForCorrectionDto quiz, SubmitQuizAttemptDto dto) {

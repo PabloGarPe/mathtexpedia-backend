@@ -107,7 +107,8 @@ public class SubjectController extends GenericController {
         return ResponseEntity.ok(updatedSubject);
     }
 
-    @Operation(summary = "Obtiene todos los cuestionarios de una asignatura", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene todos los cuestionarios de una asignatura",
+            description = "Requiere autenticación, pero no requiere rol ADMIN. Los cuestionarios ocultos solo se incluyen para administradores")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de cuestionarios obtenida"),
             @ApiResponse(responseCode = "401", description = "No autorizado"),
@@ -116,15 +117,17 @@ public class SubjectController extends GenericController {
     @GetMapping("/{id}/quizzes")
     public ResponseEntity<List<QuizDto>> getSubjectQuizzes(
             @Parameter(description = "ID de la asignatura", required = true)
-            @PathVariable long id
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
     ) throws MathtexpediaNotFoundException {
         logger.debug("Called getSubjectQuizzes with id {}", id);
 
-        List<QuizDto> quizzes = quizService.getQuizzesBySubject(id);
+        List<QuizDto> quizzes = quizService.getQuizzesBySubject(id, isAdmin(user));
         return ResponseEntity.ok(quizzes);
     }
 
-    @Operation(summary = "Obtiene todos los cuestionarios de un tema", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene todos los cuestionarios de un tema",
+            description = "Requiere autenticación, pero no requiere rol ADMIN. Los cuestionarios ocultos solo se incluyen para administradores")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de cuestionarios obtenida"),
             @ApiResponse(responseCode = "401", description = "No autorizado"),
@@ -133,11 +136,12 @@ public class SubjectController extends GenericController {
     @GetMapping("/unit/{id}/quizzes")
     public ResponseEntity<List<QuizDto>> getSubjectUnitQuizzes(
             @Parameter(description = "ID del tema", required = true)
-            @PathVariable long id
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
     ) throws MathtexpediaNotFoundException {
         logger.debug("Called getSubjectUnitQuizzes with id {}", id);
 
-        List<QuizDto> quizzes = quizService.getQuizzesBySubjectUnit(id);
+        List<QuizDto> quizzes = quizService.getQuizzesBySubjectUnit(id, isAdmin(user));
         return ResponseEntity.ok(quizzes);
     }
 
