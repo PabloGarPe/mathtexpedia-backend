@@ -37,4 +37,15 @@ public class AttemptAnswerDao extends GenericJPADao implements AttemptAnswerData
         em.persist(attempt);
         return attempt;
     }
+
+    @Override
+    @Transactional
+    public void deleteByQuizId(long quizId) {
+        logger.trace("Deleting attempt answers of quiz with id {}", quizId);
+
+        em.createQuery("DELETE FROM AttemptAnswer aa WHERE aa.attempt.id IN " +
+                        "(SELECT a.id FROM QuizAttempt a WHERE a.quiz.id = :quizId)")
+                .setParameter("quizId", quizId)
+                .executeUpdate();
+    }
 }

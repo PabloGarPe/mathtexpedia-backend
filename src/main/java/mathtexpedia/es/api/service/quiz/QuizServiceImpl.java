@@ -8,12 +8,14 @@ import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
 import mathtexpedia.es.api.domain.model.question.*;
 import mathtexpedia.es.api.domain.model.quiz.*;
+import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswerDataService;
 import mathtexpedia.es.api.persistence.option.Option;
 import mathtexpedia.es.api.persistence.option.OptionDataService;
 import mathtexpedia.es.api.persistence.question.Question;
 import mathtexpedia.es.api.persistence.question.QuestionDataService;
 import mathtexpedia.es.api.persistence.quiz.Quiz;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
+import mathtexpedia.es.api.persistence.quizAttempt.QuizAttemptDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
@@ -28,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,8 +41,12 @@ public class QuizServiceImpl implements QuizService {
 
     private static final Logger logger = LoggerFactory.getLogger(QuizServiceImpl.class);
     private static final String QUIZ_NOT_FOUND_MESSAGE = "Quiz not found with id: ";
+    private static final int DEFAULT_FEED_LIMIT = 10;
+    private static final int MAX_FEED_LIMIT = 20;
 
     private final QuizDataService quizDataService;
+    private final QuizAttemptDataService quizAttemptDataService;
+    private final AttemptAnswerDataService attemptAnswerDataService;
     private final SubjectDataService subjectDataService;
     private final SubjectUnitDataService subjectUnitDataService;
     private final QuestionService questionService;
@@ -50,6 +58,8 @@ public class QuizServiceImpl implements QuizService {
 
     public QuizServiceImpl(
             QuizDataService quizDataService,
+            QuizAttemptDataService quizAttemptDataService,
+            AttemptAnswerDataService attemptAnswerDataService,
             SubjectDataService subjectDataService,
             SubjectUnitDataService subjectUnitDataService,
             QuestionService questionService,
@@ -59,6 +69,8 @@ public class QuizServiceImpl implements QuizService {
             QuizMapper quizMapper,
             QuestionMapper questionMapper) {
         this.quizDataService = quizDataService;
+        this.quizAttemptDataService = quizAttemptDataService;
+        this.attemptAnswerDataService = attemptAnswerDataService;
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.questionService = questionService;
@@ -73,10 +85,26 @@ public class QuizServiceImpl implements QuizService {
     public List<QuizDto> getQuizzes() {
         logger.info("Fetching all quizzes");
 
-        return quizDataService.getAll()
-                .stream()
-                .map(quizMapper::toDto)
-                .toList();
+        return toDtos(quizDataService.getAll());
+    }
+
+    @Override
+    public List<QuizDto> getRecentQuizzes(Integer limit) {
+        logger.info("Fetching recent quizzes (limit: {})", limit);
+
+        return toDtos(quizDataService.getRecent(normalizeLimit(limit)));
+    }
+
+    @Override
+    public List<QuizDto> getMostAttemptedQuizzes(Integer limit) {
+        logger.info("Fetching most attempted quizzes (limit: {})", limit);
+
+        List<Long> orderedIds = quizAttemptDataService.getMostAttemptedQuizIds(normalizeLimit(limit));
+
+        Map<Long, Quiz> byId = new HashMap<>();
+        quizDataService.getByIds(orderedIds).forEach(quiz -> byId.put(quiz.getId(), quiz));
+
+        return toDtos(orderedIds.stream().map(byId::get).filter(Objects::nonNull).toList());
     }
 
     @Override
@@ -84,7 +112,7 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Fetching quiz with id: {}", id);
 
         Optional<Quiz> quiz = quizDataService.getById(id);
-        return quiz.map(quizMapper::toDto);
+        return quiz.map(found -> toDtos(List.of(found)).get(0));
     }
 
     @Override
@@ -94,10 +122,7 @@ public class QuizServiceImpl implements QuizService {
         if (subjectUnitDataService.getById(subjectUnitId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId);
 
-        return quizDataService.getAllBySubjectUnitId(subjectUnitId)
-                .stream()
-                .map(quizMapper::toDto)
-                .toList();
+        return toDtos(quizDataService.getAllBySubjectUnitId(subjectUnitId));
     }
 
     @Override
@@ -107,10 +132,7 @@ public class QuizServiceImpl implements QuizService {
         if (subjectDataService.getById(subjectId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
 
-        return quizDataService.getAllBySubjectId(subjectId)
-                .stream()
-                .map(quizMapper::toDto)
-                .toList();
+        return toDtos(quizDataService.getAllBySubjectId(subjectId));
     }
 
     @Override
@@ -124,7 +146,7 @@ public class QuizServiceImpl implements QuizService {
 
         try {
             Quiz created = quizDataService.create(quiz);
-            return quizMapper.toDto(created);
+            return quizMapper.toDto(created, 0);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating Quiz: " + e.getMessage(), e);
         }
@@ -180,7 +202,7 @@ public class QuizServiceImpl implements QuizService {
 
         try {
             Quiz updated = quizDataService.update(toUpdate);
-            return quizMapper.toDto(updated);
+            return toDtos(List.of(updated)).get(0);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error updating Quiz: " + e.getMessage(), e);
         }
@@ -191,12 +213,16 @@ public class QuizServiceImpl implements QuizService {
     public void delete(long id) throws MathtexpediaNotFoundException {
         logger.info("Deleting quiz with id: {}", id);
 
+        Quiz toDelete = quizDataService.getById(id)
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + id));
+
+        // Los intentos referencian al cuestionario y sus respuestas a preguntas y opciones: van primero
+        attemptAnswerDataService.deleteByQuizId(id);
+        quizAttemptDataService.deleteByQuizId(id);
+
         for (QuestionDto question : questionService.getQuestionsByQuiz(id)) {
             questionService.delete(question.getId());
         }
-
-        Quiz toDelete = quizDataService.getById(id)
-                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + id));
 
         quizDataService.delete(toDelete);
 
@@ -257,6 +283,20 @@ public class QuizServiceImpl implements QuizService {
         }
 
         return createdQuiz;
+    }
+
+    private int normalizeLimit(Integer limit) {
+        if (limit == null)
+            return DEFAULT_FEED_LIMIT;
+        return Math.max(1, Math.min(limit, MAX_FEED_LIMIT));
+    }
+
+    /** Convierte a DTO conservando el orden recibido, con una única consulta para todos los contadores de intentos. */
+    private List<QuizDto> toDtos(List<Quiz> quizzes) {
+        Map<Long, Long> attempts = quizAttemptDataService.countAttemptsByQuizIds(quizzes.stream().map(Quiz::getId).toList());
+        return quizzes.stream()
+                .map(quiz -> quizMapper.toDto(quiz, attempts.getOrDefault(quiz.getId(), 0L)))
+                .toList();
     }
 
     private void resolveSubjectAndUnit(Quiz target, Long subjectId, Long subjectUnitId)

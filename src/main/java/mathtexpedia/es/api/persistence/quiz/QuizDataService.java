@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.persistence.quiz;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,6 +13,11 @@ public interface QuizDataService {
     List<Quiz> getAllBySubjectId(long subjectId);
 
     List<Quiz> getAllBySubjectUnitId(long subjectUnitId);
+
+    /** Los {@code limit} cuestionarios creados o editados más recientemente, del más reciente al más antiguo. */
+    List<Quiz> getRecent(int limit);
+
+    List<Quiz> getByIds(Collection<Long> quizIds);
 
     Quiz create(Quiz quiz);
 

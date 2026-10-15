@@ -8,6 +8,7 @@ import org.hibernate.Session;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,6 +75,42 @@ public class QuizDao extends GenericJPADao implements QuizDataService {
         Root<Quiz> root = cq.from(Quiz.class);
 
         cq.select(root).where(cb.equal(root.get("subjectUnit").get("id"), subjectUnitId));
+
+        return session.createQuery(cq).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Quiz> getRecent(int limit) {
+        logger.trace("Getting {} most recent quizzes", limit);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Quiz> cq = cb.createQuery(Quiz.class);
+        Root<Quiz> root = cq.from(Quiz.class);
+
+        cq.select(root).where(cb.isNotNull(root.get("lastTimeEdited")))
+                .orderBy(cb.desc(root.get("lastTimeEdited")), cb.desc(root.get("id")));
+
+        return session.createQuery(cq).setMaxResults(limit).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Quiz> getByIds(Collection<Long> quizIds) {
+        if (quizIds == null || quizIds.isEmpty())
+            return List.of();
+
+        logger.trace("Getting quizzes with ids {}", quizIds);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Quiz> cq = cb.createQuery(Quiz.class);
+        Root<Quiz> root = cq.from(Quiz.class);
+
+        cq.select(root).where(root.get("id").in(quizIds));
 
         return session.createQuery(cq).getResultList();
     }

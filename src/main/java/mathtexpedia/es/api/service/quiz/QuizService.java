@@ -12,6 +12,12 @@ public interface QuizService {
 
     List<QuizDto> getQuizzes();
 
+    /** Los cuestionarios creados o editados más recientemente. */
+    List<QuizDto> getRecentQuizzes(Integer limit);
+
+    /** Los cuestionarios más hechos en general (todos los usuarios). */
+    List<QuizDto> getMostAttemptedQuizzes(Integer limit);
+
     Optional<QuizDto> getQuiz(long id);
 
     List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
