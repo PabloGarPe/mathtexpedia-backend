@@ -1,5 +1,6 @@
 package mathtexpedia.es.api.domain.model.pdf;
 
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -25,8 +26,10 @@ public class PDFDto {
             + "o si el autor no ha completado su perfil", nullable = true, example = "ada_lovelace")
     private String author;
 
-    @Schema(description = "Nombres públicos de los coautores, en el orden en que se indicaron. Vacío si no hay coautores. "
-            + "Un coautor sin perfil completo aparece como nulo", example = "[\"alan_turing\"]")
+    @ArraySchema(
+            arraySchema = @Schema(description = "Nombres públicos de los coautores, en el orden en que se indicaron. Vacío si no hay coautores. "
+                    + "Un coautor sin perfil completo aparece como nulo", example = "[\"alan_turing\"]"),
+            schema = @Schema(nullable = true))
     private List<String> coauthors;
 
     @Schema(description = "Autores con su identificador y marca de foto de perfil: el primero es el principal, el resto coautores, "
