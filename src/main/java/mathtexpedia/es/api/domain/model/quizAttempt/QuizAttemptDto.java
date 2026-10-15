@@ -24,6 +24,12 @@ public class QuizAttemptDto {
     @Schema(description = "Puntaje obtenido en el intento de quiz", example = "85.5")
     private double score;
 
+    @Schema(description = "Puntaje ponderado según el número de intento; es el que cuenta para el leaderboard", example = "6.0")
+    private double adjustedScore;
+
+    @Schema(description = "Número de intento del usuario en este quiz (1 = primer intento)", example = "2")
+    private int attemptNumber;
+
     @Schema(description = "Número total de preguntas en el intento de quiz", example = "10")
     private int totalQuestions;
 

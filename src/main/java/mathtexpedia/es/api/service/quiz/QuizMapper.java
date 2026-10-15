@@ -36,7 +36,7 @@ public class QuizMapper {
         target.setDifficulty(dto.getDifficulty());
     }
 
-    public QuizDto toDto(Quiz quiz) {
+    public QuizDto toDto(Quiz quiz, long attemptCount) {
         return new QuizDto(
                 quiz.getId(),
                 quiz.getName(),
@@ -44,7 +44,10 @@ public class QuizMapper {
                 quiz.getDifficulty(),
                 quiz.getLastTimeEdited(),
                 subjectMapper.toDto(quiz.getSubject()),
-                quiz.getSubjectUnit() != null ? subjectUnitMapper.toDto(quiz.getSubjectUnit()) : null
+                quiz.getSubjectUnit() != null ? subjectUnitMapper.toDto(quiz.getSubjectUnit()) : null,
+                quiz.isVisible(),
+                quiz.getPublishedAt(),
+                attemptCount
         );
     }
 

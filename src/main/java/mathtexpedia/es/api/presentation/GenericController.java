@@ -10,10 +10,13 @@ import org.springframework.beans.propertyeditors.CustomDateEditor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.text.SimpleDateFormat;
 
@@ -56,6 +59,10 @@ public class GenericController {
                 logger.error(message, e);
                 break;
         }
+    }
+
+    protected boolean isAdmin(UserProfile user) {
+        return user != null && UserRole.ADMIN.equals(user.getRole());
     }
 
     public void checkIfAdmin(UserProfile user) throws MathtexpediaUnauthorizedException {
@@ -117,6 +124,29 @@ public class GenericController {
         logErrorAndHttpResponse(e, "400", Level.ERROR);
 
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    /** Cuerpo JSON ilegible o con valores inválidos (p. ej. un enum desconocido): es un error del cliente, no del servidor. */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    protected ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        logErrorAndHttpResponse(e, "400", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    /** Falta una parte obligatoria de una petición multipart (p. ej. el fichero): error del cliente. */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    protected ResponseEntity<Object> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
+        logErrorAndHttpResponse(e, "400", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        logErrorAndHttpResponse(e, "413", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
     @ExceptionHandler(Exception.class)

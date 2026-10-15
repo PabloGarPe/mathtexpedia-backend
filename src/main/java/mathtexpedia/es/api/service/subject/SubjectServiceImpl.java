@@ -2,10 +2,14 @@ package mathtexpedia.es.api.service.subject;
 
 import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
+import mathtexpedia.es.api.domain.event.ResourceDeletedEvent;
+import mathtexpedia.es.api.domain.event.SubjectCreatedEvent;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.subject.CreateSubjectDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subject.UpdateSubjectDto;
+import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
@@ -13,6 +17,7 @@ import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,19 +33,25 @@ public class SubjectServiceImpl implements SubjectService{
     private final PDFDataService pdfDataService;
     private final QuizDataService quizDataService;
     private final SubjectMapper subjectMapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CurrentUser currentUser;
 
     public SubjectServiceImpl(
             SubjectDataService subjectDataService,
             SubjectUnitDataService subjectUnitDataService,
             PDFDataService pdfDataService,
             QuizDataService quizDataService,
-            SubjectMapper subjectMapper
+            SubjectMapper subjectMapper,
+            ApplicationEventPublisher eventPublisher,
+            CurrentUser currentUser
     ) {
         this.subjectDataService = subjectDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.pdfDataService = pdfDataService;
         this.quizDataService = quizDataService;
         this.subjectMapper = subjectMapper;
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
     }
 
     @Override
@@ -68,6 +79,7 @@ public class SubjectServiceImpl implements SubjectService{
         Subject subject = subjectMapper.toEntity(dto);
         try {
             Subject created = subjectDataService.create(subject);
+            eventPublisher.publishEvent(new SubjectCreatedEvent(created.getId(), currentUser.externalIdOrNull()));
             return subjectMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating subject: " + e.getMessage(), e);
@@ -87,10 +99,11 @@ public class SubjectServiceImpl implements SubjectService{
         if (!pdfDataService.getGeneralPDFsForSubject(id).isEmpty())
             throw new MathtexpediaConflictException("Cannot delete subject with id: " + id + " because it has associated PDFs.");
 
-        if (!quizDataService.getAllBySubjectId(id).isEmpty())
+        if (!quizDataService.getAllBySubjectId(id, false).isEmpty())
             throw new MathtexpediaConflictException("Cannot delete subject with id: " + id + " because it has associated quizzes.");
 
         subjectDataService.delete(toDelete);
+        eventPublisher.publishEvent(new ResourceDeletedEvent(ResourceType.SUBJECT, id));
     }
 
     @Override

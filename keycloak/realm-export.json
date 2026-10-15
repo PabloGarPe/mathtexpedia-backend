@@ -12,6 +12,7 @@
   "internationalizationEnabled": true,
   "supportedLocales": ["es", "en"],
   "defaultLocale": "es",
+  "loginTheme": "mathtexpedia",
   "smtpServer": {
     "host": "smtp.resend.com",
     "port": "465",

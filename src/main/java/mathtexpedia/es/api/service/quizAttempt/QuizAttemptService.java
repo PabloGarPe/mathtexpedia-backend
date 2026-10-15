@@ -21,5 +21,5 @@ public interface QuizAttemptService {
 
     QuizAttemptStatsDto getMyStatsForQuiz(long quizId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException;
 
-    Page<LeaderboardEntryDto> getLeaderboardForQuiz(long quizId, Pageable pageable) throws MathtexpediaNotFoundException;
+    Page<LeaderboardEntryDto> getLeaderboardForQuiz(long quizId, Pageable pageable, boolean includeHidden) throws MathtexpediaNotFoundException;
 }

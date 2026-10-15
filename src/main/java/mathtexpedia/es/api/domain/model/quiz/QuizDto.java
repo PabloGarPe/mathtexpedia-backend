@@ -32,4 +32,15 @@ public class QuizDto {
 
     @Schema(description = "Tema al que pertenece el cuestionario", nullable = true)
     private SubjectUnitDto subjectUnit;
+
+    @Schema(description = "Si el cuestionario es visible para los usuarios. Los ocultos solo los ve un administrador")
+    private boolean visible;
+
+    @Schema(description = "Fecha de la primera publicación (primera vez que se hizo visible). Nula si nunca se ha publicado",
+            nullable = true, accessMode = Schema.AccessMode.READ_ONLY)
+    private Instant publishedAt;
+
+    @Schema(description = "Número total de veces que se ha hecho el cuestionario (todos los usuarios; cada envío cuenta, aunque sea del mismo usuario). 0 si nadie lo ha hecho",
+            example = "128", accessMode = Schema.AccessMode.READ_ONLY)
+    private long attemptCount;
 }

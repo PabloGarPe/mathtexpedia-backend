@@ -9,7 +9,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataService {
@@ -126,9 +129,9 @@ public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataServ
     public Page<LeaderboardRow> getLeaderboardForQuiz(long quizId, Pageable pageable) {
         TypedQuery<LeaderboardRow> query = em.createQuery(
                 "SELECT new mathtexpedia.es.api.persistence.quizAttempt.LeaderboardRow(" +
-                        "a.user.id, a.user.name, MAX(a.adjustedScore)) " +
+                        "a.user.id, a.user.username, a.user.avatarUpdatedAt, MAX(a.adjustedScore)) " +
                         "FROM QuizAttempt a WHERE a.quiz.id = :quizId " +
-                        "GROUP BY a.user.id, a.user.name " +
+                        "GROUP BY a.user.id, a.user.username, a.user.avatarUpdatedAt " +
                         "ORDER BY MAX(a.adjustedScore) DESC",
                 LeaderboardRow.class
         );
@@ -142,5 +145,47 @@ public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataServ
         ).setParameter(QUIZ_ID_PARAM, quizId).getSingleResult();
 
         return new PageImpl<>(query.getResultList(), pageable, totalUsers);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByQuizId(long quizId) {
+        logger.trace("Deleting quiz attempts of quiz with id {}", quizId);
+
+        em.createQuery("DELETE FROM QuizAttempt a WHERE a.quiz.id = :quizId")
+                .setParameter(QUIZ_ID_PARAM, quizId)
+                .executeUpdate();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> countAttemptsByQuizIds(Collection<Long> quizIds) {
+        if (quizIds == null || quizIds.isEmpty())
+            return Map.of();
+
+        logger.trace("Counting quiz attempts for {} quizzes", quizIds.size());
+
+        List<Object[]> rows = em.createQuery(
+                "SELECT a.quiz.id, COUNT(a) FROM QuizAttempt a WHERE a.quiz.id IN :quizIds GROUP BY a.quiz.id",
+                Object[].class
+        ).setParameter("quizIds", quizIds).getResultList();
+
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] row : rows)
+            counts.put((Long) row[0], (Long) row[1]);
+        return counts;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getMostAttemptedQuizIds(int limit, boolean visibleOnly) {
+        logger.trace("Getting top {} most attempted quizzes", limit);
+
+        return em.createQuery(
+                "SELECT a.quiz.id FROM QuizAttempt a " + (visibleOnly ? "WHERE a.quiz.visible = true " : "") +
+                        "GROUP BY a.quiz.id " +
+                        "ORDER BY COUNT(a) DESC, MAX(a.submittedAt) DESC, a.quiz.id DESC",
+                Long.class
+        ).setMaxResults(limit).getResultList();
     }
 }

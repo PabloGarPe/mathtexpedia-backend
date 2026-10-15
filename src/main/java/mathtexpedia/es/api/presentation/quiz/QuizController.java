@@ -15,6 +15,7 @@ import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
 import mathtexpedia.es.api.domain.model.quiz.UpdateQuizDto;
+import mathtexpedia.es.api.domain.model.quiz.UpdateQuizVisibilityDto;
 import mathtexpedia.es.api.domain.model.quizAttempt.*;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -46,19 +47,51 @@ public class QuizController extends GenericController {
         this.quizAttemptService = quizAttemptService;
     }
 
-    @Operation(summary = "Obtiene un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Lista todos los cuestionarios",
+            description = "Requiere autenticación, pero no requiere rol ADMIN. Para un administrador incluye también los cuestionarios ocultos "
+                    + "(es lo que necesita el panel de administración para poder publicarlos); para el resto, solo los visibles. "
+                    + "El listado público GET /public/quiz nunca incluye los ocultos")
+    @ApiResponse(responseCode = "200", description = "Lista de cuestionarios con el número de intentos de cada uno")
+    @ApiResponse(responseCode = "401", description = "No autenticado")
+    @GetMapping
+    public ResponseEntity<List<QuizDto>> getAllQuizzes(@AuthenticationPrincipal UserProfile user) {
+        logger.debug("Called getAllQuizzes by user: {}", user);
+
+        return ResponseEntity.ok(quizService.getQuizzes(isAdmin(user)));
+    }
+
+    @Operation(summary = "Cuestionarios nuevos o actualizados de las asignaturas a las que estoy suscrito",
+            description = "Como GET /public/quiz/recent pero solo de las asignaturas suscritas, del más reciente al más antiguo. "
+                    + "Lista vacía si el usuario no tiene suscripciones. Los ocultos solo se incluyen para administradores")
+    @ApiResponse(responseCode = "200", description = "Lista de cuestionarios (puede estar vacía)")
+    @ApiResponse(responseCode = "401", description = "No autenticado")
+    @GetMapping("/recent/subscribed")
+    public ResponseEntity<List<QuizDto>> getRecentSubscribedQuizzes(
+            @Parameter(description = "Máximo de cuestionarios a devolver (por defecto 10, máximo 20)")
+            @RequestParam(required = false) Integer limit,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
+        logger.debug("Called getRecentSubscribedQuizzes by user: {}", user);
+
+        return ResponseEntity.ok(quizService.getRecentQuizzesForSubscriber(user, limit, isAdmin(user)));
+    }
+
+    @Operation(summary = "Obtiene un cuestionario por su ID",
+            description = "Requiere autenticación, pero no requiere rol ADMIN. Si el cuestionario está oculto, solo lo ve un administrador (404 para el resto)")
     @GetMapping("/{id}")
     public ResponseEntity<QuizDto> getQuiz(
-            @Parameter(description = "ID de la asignatura", required = true)
-            @PathVariable long id
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
     ) {
         logger.debug("Called getQuiz with id: {}", id);
 
-        Optional<QuizDto> quizDto = quizService.getQuiz(id);
+        Optional<QuizDto> quizDto = quizService.getQuiz(id, isAdmin(user));
         return quizDto.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Crea un nuevo cuestionario", description = "Requiere rol ADMIN")
+    @Operation(summary = "Crea un nuevo cuestionario",
+            description = "Se crea OCULTO (visible = false), porque se rellena pregunta a pregunta. Para publicarlo hay que usar PATCH /quiz/{id}/visibility. Requiere rol ADMIN")
     @ApiResponse(responseCode = "201", description = "Cuestionario creado correctamente")
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
     @ApiResponse(responseCode = "401", description = "No autorizado")
@@ -96,6 +129,27 @@ public class QuizController extends GenericController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Publica u oculta un cuestionario",
+            description = "Los cuestionarios ocultos solo los ve un administrador. Publicar uno sin preguntas es un error (400). "
+                    + "La primera vez que se publica se notifica a los usuarios; ocultarlo y publicarlo de nuevo no vuelve a notificar. Requiere rol ADMIN")
+    @ApiResponse(responseCode = "200", description = "Visibilidad actualizada (también si ya estaba en ese estado)")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos o el cuestionario no tiene preguntas")
+    @ApiResponse(responseCode = "401", description = "No autorizado")
+    @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    @PatchMapping("/{id}/visibility")
+    public ResponseEntity<QuizDto> updateQuizVisibility(
+            @Parameter(description = "ID del cuestionario", required = true)
+            @PathVariable long id,
+            @RequestBody @Valid UpdateQuizVisibilityDto dto,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException, MathtexpediaNotFoundException {
+        logger.debug("Called updateQuizVisibility with id: {} and dto: {}", id, dto);
+
+        checkIfAdmin(user);
+
+        return ResponseEntity.ok(quizService.setVisibility(id, dto.getVisible()));
+    }
+
     @Operation(summary = "Actualiza un cuestionario por su ID", description = "Requiere rol ADMIN")
     @ApiResponse(responseCode = "200", description = "Cuestionario actualizado correctamente")
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
@@ -118,33 +172,39 @@ public class QuizController extends GenericController {
         return ResponseEntity.ok(updatedQuiz);
     }
 
-    @Operation(summary = "Obtiene las preguntas de un cuestionario por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene las preguntas de un cuestionario por su ID",
+            description = "Incluye la explicación de la respuesta correcta, por lo que es solo para edición. Para resolver el cuestionario usar GET /quiz/{id}/attempt. Requiere rol ADMIN")
     @ApiResponse(responseCode = "200", description = "Preguntas obtenidas correctamente")
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
     @GetMapping("/{id}/questions")
     public ResponseEntity<List<QuestionDto>> getQuizQuestions(
             @Parameter(description = "ID del cuestionario", required = true)
-            @PathVariable long id
-    ) throws MathtexpediaNotFoundException {
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
         logger.debug("Called getQuizQuestions with id: {}", id);
+
+        checkIfAdmin(user);
 
         List<QuestionDto> questions = questionService.getQuestionsByQuiz(id);
         return ResponseEntity.ok(questions);
     }
 
-    @Operation(summary = "Obtiene un cuestionario por su ID para intentar resolverlo", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene un cuestionario por su ID para intentar resolverlo",
+            description = "Requiere autenticación, pero no requiere rol ADMIN. Si el cuestionario está oculto, solo lo ve un administrador (404 para el resto)")
     @ApiResponse(responseCode = "200", description = "Cuestionario obtenido correctamente")
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
     @GetMapping("/{id}/attempt")
     public ResponseEntity<QuizForAttemptDto> getQuizForAttempt(
             @Parameter(description = "ID del cuestionario", required = true)
-            @PathVariable long id
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
     ) throws MathtexpediaNotFoundException {
         logger.debug("Called getQuizForAttempt with id: {}", id);
 
-        QuizForAttemptDto quizForAttempt = quizService.getQuizForAttempt(id);
+        QuizForAttemptDto quizForAttempt = quizService.getQuizForAttempt(id, isAdmin(user));
         return ResponseEntity.ok(quizForAttempt);
     }
 
@@ -167,7 +227,7 @@ public class QuizController extends GenericController {
     }
 
     @Operation(summary = "Importa un cuestionario completo desde JSON",
-            description = "El JSON no incluye asignatura ni tema; se seleccionan aparte al importar. Requiere rol ADMIN")
+            description = "El JSON no incluye asignatura ni tema; se seleccionan aparte al importar. Se importa completo, así que se publica al momento (visible) y se notifica a los usuarios. Requiere rol ADMIN")
     @ApiResponse(responseCode = "201", description = "Cuestionario importado correctamente")
     @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
     @ApiResponse(responseCode = "401", description = "No autorizado")
@@ -248,10 +308,11 @@ public class QuizController extends GenericController {
             @Parameter(description = "ID del cuestionario", required = true)
             @PathVariable long id,
             @Parameter(description = "Parámetros de paginación")
-            Pageable pageable
+            Pageable pageable,
+            @AuthenticationPrincipal UserProfile user
     ) throws MathtexpediaNotFoundException {
         logger.debug("Called getLeaderboardForQuiz with id: {} and pageable: {}", id, pageable);
 
-        return quizAttemptService.getLeaderboardForQuiz(id, pageable);
+        return quizAttemptService.getLeaderboardForQuiz(id, pageable, isAdmin(user));
     }
 }

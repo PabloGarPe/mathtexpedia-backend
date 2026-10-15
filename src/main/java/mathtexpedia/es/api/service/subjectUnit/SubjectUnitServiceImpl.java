@@ -2,10 +2,14 @@ package mathtexpedia.es.api.service.subjectUnit;
 
 import jakarta.persistence.PersistenceException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
+import mathtexpedia.es.api.domain.event.ResourceDeletedEvent;
+import mathtexpedia.es.api.domain.event.SubjectUnitCreatedEvent;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.subjectUnit.CreateSubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.UpdateSubjectUnitDto;
+import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
@@ -13,6 +17,7 @@ import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import org.slf4j.Logger;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,19 +33,25 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
     private final PDFDataService pDFDataService;
     private final QuizDataService quizDataService;
     private final SubjectUnitMapper subjectUnitMapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CurrentUser currentUser;
 
     public SubjectUnitServiceImpl(
             SubjectUnitDataService subjectUnitService,
             SubjectDataService subjectService,
             PDFDataService pDFDataService,
             QuizDataService quizDataService,
-            SubjectUnitMapper subjectUnitMapper
+            SubjectUnitMapper subjectUnitMapper,
+            ApplicationEventPublisher eventPublisher,
+            CurrentUser currentUser
     ) {
         this.subjectUnitDataService = subjectUnitService;
         this.subjectDataService = subjectService;
         this.pDFDataService = pDFDataService;
         this.quizDataService = quizDataService;
         this.subjectUnitMapper = subjectUnitMapper;
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
     }
 
     @Override
@@ -79,6 +90,7 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         subjectUnit.setSubject(subject.get());
         try {
             SubjectUnit created = subjectUnitDataService.create(subjectUnit);
+            eventPublisher.publishEvent(new SubjectUnitCreatedEvent(created.getId(), subjectId, currentUser.externalIdOrNull()));
             return subjectUnitMapper.toDto(created);
         } catch (PersistenceException e) {
             throw new MathtexpediaConflictException("Error creating subject unit: " + e.getMessage(), e);
@@ -95,10 +107,11 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         if(!pDFDataService.getAllForSubjectUnit(id).isEmpty())
             throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated PDFs.");
 
-        if (!quizDataService.getAllBySubjectUnitId(id).isEmpty())
+        if (!quizDataService.getAllBySubjectUnitId(id, false).isEmpty())
             throw new MathtexpediaConflictException("Cannot delete subject unit with id: " + id + " because it has associated quizzes.");
 
         subjectUnitDataService.delete(toDelete);
+        eventPublisher.publishEvent(new ResourceDeletedEvent(ResourceType.SUBJECT_UNIT, id));
     }
 
     @Override
