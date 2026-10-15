@@ -31,7 +31,7 @@ public class UserSearchController extends GenericController {
     }
 
     @Operation(summary = "Busca usuarios que pueden ser autores o coautores de un PDF",
-            description = "Devuelve los usuarios activos cuyo nombre o email contiene el texto buscado (sin distinguir mayúsculas), "
+            description = "Devuelve los usuarios activos cuyo nombre o email contiene el texto buscado (sin distinguir mayúsculas ni tildes), "
                     + "ordenados por nombre (o por email si no tienen nombre). Pensado para un buscador con sugerencias: "
                     + "el front debe aplicar debounce y cancelar la petición anterior. Si 'q' tiene menos de 2 caracteres "
                     + "(tras quitar espacios) devuelve una lista vacía. Requiere rol ADMIN")

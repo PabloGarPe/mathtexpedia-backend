@@ -83,9 +83,10 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
         CriteriaQuery<UserAccount> cq = cb.createQuery(UserAccount.class);
         Root<UserAccount> root = cq.from(UserAccount.class);
 
-        String pattern = "%" + escapeLike(term.toLowerCase(Locale.ROOT)) + "%";
-        Expression<String> email = cb.lower(root.get("email"));
-        Expression<String> name = cb.lower(root.get("name"));
+        // unaccent (extensión de Postgres) en ambos lados: "garcia" encuentra "García". Solo afecta a la comparación
+        Expression<String> pattern = unaccent(cb, cb.literal("%" + escapeLike(term.toLowerCase(Locale.ROOT)) + "%"));
+        Expression<String> email = unaccent(cb, cb.lower(root.get("email")));
+        Expression<String> name = unaccent(cb, cb.lower(root.get("name")));
 
         cq.select(root)
                 .where(
@@ -99,6 +100,10 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
                 .orderBy(cb.asc(cb.coalesce(name, email)), cb.asc(root.get("id")));
 
         return session.createQuery(cq).setMaxResults(limit).getResultList();
+    }
+
+    private static Expression<String> unaccent(CriteriaBuilder cb, Expression<String> expression) {
+        return cb.function("unaccent", String.class, expression);
     }
 
     /** Evita que '%', '_' o '\\' escritos por el usuario actúen como comodines. */
