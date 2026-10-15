@@ -39,6 +39,8 @@ public class SubjectUnitDao extends GenericJPADao implements SubjectUnitDataServ
 
         CriteriaQuery<SubjectUnit> cq = cb.createQuery(SubjectUnit.class);
         Root<SubjectUnit> root = cq.from(SubjectUnit.class);
+        // La asignatura es LAZY y los listeners de notificaciones la leen fuera de la transacción
+        root.fetch("subject");
 
         cq.select(root).where(cb.equal(root.get("id"), id));
 

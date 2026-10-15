@@ -18,6 +18,9 @@ public interface QuizDataService {
     /** Los {@code limit} cuestionarios creados o editados más recientemente, del más reciente al más antiguo. */
     List<Quiz> getRecent(int limit, boolean visibleOnly);
 
+    /** Como {@link #getRecent(int, boolean)} pero solo de las asignaturas indicadas. */
+    List<Quiz> getRecentBySubjects(Collection<Long> subjectIds, int limit, boolean visibleOnly);
+
     List<Quiz> getByIds(Collection<Long> quizIds);
 
     Quiz create(Quiz quiz);

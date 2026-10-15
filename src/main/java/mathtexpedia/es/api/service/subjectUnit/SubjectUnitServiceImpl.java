@@ -90,7 +90,6 @@ public class SubjectUnitServiceImpl implements SubjectUnitService {
         subjectUnit.setSubject(subject.get());
         try {
             SubjectUnit created = subjectUnitDataService.create(subjectUnit);
-            // Sin listener a propósito: los temas solo se notificarán a los suscritos a la asignatura (#70)
             eventPublisher.publishEvent(new SubjectUnitCreatedEvent(created.getId(), subjectId, currentUser.externalIdOrNull()));
             return subjectUnitMapper.toDto(created);
         } catch (PersistenceException e) {

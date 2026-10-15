@@ -6,11 +6,13 @@ import mathtexpedia.es.api.domain.event.ResourceDeletedEvent;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
 import mathtexpedia.es.api.domain.model.question.*;
 import mathtexpedia.es.api.domain.model.quiz.*;
+import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswerDataService;
 import mathtexpedia.es.api.persistence.option.Option;
@@ -20,13 +22,16 @@ import mathtexpedia.es.api.persistence.question.QuestionDataService;
 import mathtexpedia.es.api.persistence.quiz.Quiz;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.quizAttempt.QuizAttemptDataService;
+import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.persistence.subject.Subject;
+import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscriptionDataService;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import mathtexpedia.es.api.service.option.OptionService;
 import mathtexpedia.es.api.service.question.QuestionMapper;
 import mathtexpedia.es.api.service.question.QuestionService;
+import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -40,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class QuizServiceImpl implements QuizService {
@@ -62,6 +68,8 @@ public class QuizServiceImpl implements QuizService {
     private final QuestionMapper questionMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final CurrentUser currentUser;
+    private final SubjectSubscriptionDataService subscriptionDataService;
+    private final UserAccountService userAccountService;
 
     public QuizServiceImpl(
             QuizDataService quizDataService,
@@ -76,7 +84,9 @@ public class QuizServiceImpl implements QuizService {
             QuizMapper quizMapper,
             QuestionMapper questionMapper,
             ApplicationEventPublisher eventPublisher,
-            CurrentUser currentUser) {
+            CurrentUser currentUser,
+            SubjectSubscriptionDataService subscriptionDataService,
+            UserAccountService userAccountService) {
         this.quizDataService = quizDataService;
         this.quizAttemptDataService = quizAttemptDataService;
         this.attemptAnswerDataService = attemptAnswerDataService;
@@ -90,6 +100,8 @@ public class QuizServiceImpl implements QuizService {
         this.questionMapper = questionMapper;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
+        this.subscriptionDataService = subscriptionDataService;
+        this.userAccountService = userAccountService;
     }
 
     @Override
@@ -104,6 +116,17 @@ public class QuizServiceImpl implements QuizService {
         logger.info("Fetching recent quizzes (limit: {}, includeHidden: {})", limit, includeHidden);
 
         return toDtos(quizDataService.getRecent(normalizeLimit(limit), !includeHidden));
+    }
+
+    @Override
+    public List<QuizDto> getRecentQuizzesForSubscriber(UserProfile user, Integer limit, boolean includeHidden)
+            throws MathtexpediaUnauthorizedException {
+        logger.info("Fetching recent quizzes of subscribed subjects for user: {} (limit: {}, includeHidden: {})",
+                user.getId(), limit, includeHidden);
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        Set<Long> subjectIds = subscriptionDataService.getSubjectIdsByUser(account.getId());
+        return toDtos(quizDataService.getRecentBySubjects(subjectIds, normalizeLimit(limit), !includeHidden));
     }
 
     @Override
