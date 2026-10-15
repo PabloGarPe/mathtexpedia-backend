@@ -33,10 +33,12 @@ public class InAppNotificationChannel implements NotificationChannel {
         Collection<Long> targetUserIds = switch (request.audience()) {
             case Audience.AllUsers ignored -> null;
             case Audience.Users users -> users.userIds();
+            case Audience.SubjectSubscribers ignored -> null;
         };
+        boolean onlySubscribers = request.audience() instanceof Audience.SubjectSubscribers;
 
-        int delivered = notificationDataService.fanOutInApp(
-                notification.getId(), request.type(), targetUserIds, request.actorExternalId(), request.excludedUserIds());
+        int delivered = notificationDataService.fanOutInApp(notification.getId(), request.type(), targetUserIds,
+                request.subjectId(), onlySubscribers, request.actorExternalId(), request.excludedUserIds());
 
         logger.info("Notification {} ({}) delivered in-app to {} users", notification.getId(), request.type(), delivered);
         return delivered;

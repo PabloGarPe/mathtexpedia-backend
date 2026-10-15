@@ -1,5 +1,7 @@
 package mathtexpedia.es.api.domain.model.notification;
 
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Set;
 
 /**
@@ -10,14 +12,17 @@ import java.util.Set;
  */
 public enum NotificationType {
 
-    PDF_CREATED(NotificationCategory.CONTENT, ResourceType.PDF, true, true, Set.of(NotificationScope.ALL),
+    PDF_CREATED(NotificationCategory.CONTENT, ResourceType.PDF, true, true, scopes(NotificationScope.ALL, NotificationScope.SUBSCRIBED),
             "Nuevos apuntes", "Cuando se sube un apunte nuevo"),
-    PDF_FILE_UPDATED(NotificationCategory.CONTENT, ResourceType.PDF, true, true, Set.of(NotificationScope.ALL),
+    PDF_FILE_UPDATED(NotificationCategory.CONTENT, ResourceType.PDF, true, true, scopes(NotificationScope.ALL, NotificationScope.SUBSCRIBED),
             "Apuntes actualizados", "Cuando se reemplaza el contenido de un apunte"),
-    QUIZ_PUBLISHED(NotificationCategory.CONTENT, ResourceType.QUIZ, true, true, Set.of(NotificationScope.ALL),
+    QUIZ_PUBLISHED(NotificationCategory.CONTENT, ResourceType.QUIZ, true, true, scopes(NotificationScope.ALL, NotificationScope.SUBSCRIBED),
             "Nuevos cuestionarios", "Cuando se publica un cuestionario"),
-    SUBJECT_CREATED(NotificationCategory.CONTENT, ResourceType.SUBJECT, true, true, Set.of(NotificationScope.ALL),
+    SUBJECT_CREATED(NotificationCategory.CONTENT, ResourceType.SUBJECT, true, true, scopes(NotificationScope.ALL),
             "Nuevas asignaturas", "Cuando se añade una asignatura"),
+    // Solo llega a los suscritos a la asignatura (lo decide la audiencia, no el alcance). Apunta a la asignatura
+    SUBJECT_UNIT_CREATED(NotificationCategory.CONTENT, ResourceType.SUBJECT, true, true, Set.of(),
+            "Nuevos temas", "Cuando se añade un tema a una asignatura a la que estás suscrito"),
     PDF_AUTHOR_ADDED(NotificationCategory.PERSONAL, ResourceType.PDF, true, true, Set.of(),
             "Autoría de apuntes", "Cuando te añaden como autor de un apunte"),
     WELCOME(NotificationCategory.SYSTEM, ResourceType.NONE, false, true, Set.of(),
@@ -68,6 +73,10 @@ public enum NotificationType {
 
     public String description() {
         return description;
+    }
+
+    private static Set<NotificationScope> scopes(NotificationScope first, NotificationScope... rest) {
+        return Collections.unmodifiableSet(EnumSet.of(first, rest));
     }
 
     /** Valor por defecto cuando el usuario no ha guardado ninguna preferencia para el canal. */

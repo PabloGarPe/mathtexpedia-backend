@@ -4,6 +4,7 @@ import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 import mathtexpedia.es.api.domain.model.notification.ChannelType;
 import mathtexpedia.es.api.domain.model.notification.DeliveryStatus;
+import mathtexpedia.es.api.domain.model.notification.NotificationScope;
 import mathtexpedia.es.api.domain.model.notification.NotificationType;
 import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.persistence.GenericJPADao;
@@ -34,19 +35,22 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
     @Override
     @Transactional
     public int fanOutInApp(long notificationId, NotificationType type, Collection<Long> targetUserIds,
+                           Long subjectId, boolean onlySubscribers,
                            String excludedExternalId, Collection<Long> excludedUserIds) {
         logger.trace("Fanning out notification {} of type {}", notificationId, type);
 
         boolean hasTargets = targetUserIds != null;
         if (hasTargets && targetUserIds.isEmpty())
             return 0;
+        if (onlySubscribers && subjectId == null)
+            return 0;
 
         boolean checkPreference = type.configurable();
         boolean hasActor = excludedExternalId != null;
         boolean hasExcluded = excludedUserIds != null && !excludedUserIds.isEmpty();
+        boolean checkScope = checkPreference && type.supportedScopes().contains(NotificationScope.SUBSCRIBED);
 
         // El SQL se construye según haga falta en vez de pasar parámetros nulos (Postgres no infiere su tipo en "? IS NULL").
-        // Aquí es donde entrará la condición por alcance (scope = SUBSCRIBED) cuando existan las suscripciones (#70).
         StringBuilder sql = new StringBuilder("""
                 INSERT INTO notification_delivery (notification_id, user_id, channel, status, created_at, attempts)
                 SELECT :notificationId, u.id, :channel, :status, :now, 0
@@ -60,6 +64,15 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
         sql.append("WHERE u.status = 'ACTIVE'\n");
         if (checkPreference)
             sql.append("  AND COALESCE(p.enabled, :defaultEnabled) = true\n");
+        if (checkScope) {
+            // Quien eligió SUBSCRIBED solo la recibe si está suscrito a la asignatura (si no hay asignatura, nunca)
+            sql.append("  AND (COALESCE(p.scope, :defaultScope) <> 'SUBSCRIBED'");
+            if (subjectId != null)
+                sql.append(" OR EXISTS (SELECT 1 FROM subject_subscription ss WHERE ss.user_id = u.id AND ss.subject_id = :subjectId)");
+            sql.append(")\n");
+        }
+        if (onlySubscribers)
+            sql.append("  AND EXISTS (SELECT 1 FROM subject_subscription sa WHERE sa.user_id = u.id AND sa.subject_id = :subjectId)\n");
         if (hasActor)
             sql.append("  AND u.external_id <> :actor\n");
         if (hasExcluded)
@@ -75,6 +88,10 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
         if (checkPreference)
             query.setParameter("type", type.name())
                     .setParameter("defaultEnabled", type.defaultEnabled(ChannelType.IN_APP));
+        if (checkScope)
+            query.setParameter("defaultScope", type.defaultScope().name());
+        if (subjectId != null && (onlySubscribers || checkScope))
+            query.setParameter("subjectId", subjectId);
         if (hasActor)
             query.setParameter("actor", excludedExternalId);
         if (hasExcluded)

@@ -22,6 +22,7 @@ import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
+import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscriptionDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnit;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import mathtexpedia.es.api.persistence.user.UserAccount;
@@ -61,6 +62,7 @@ public class PDFServiceImpl implements PDFService {
     private final UserAccountDataService userAccountDataService;
     private final PDFStoragePort pdfStoragePort;
     private final UserEventDataService userEventDataService;
+    private final SubjectSubscriptionDataService subscriptionDataService;
     private final ApplicationEventPublisher eventPublisher;
     private final CurrentUser currentUser;
 
@@ -74,6 +76,7 @@ public class PDFServiceImpl implements PDFService {
             UserAccountDataService userAccountDataService,
             PDFStoragePort pdfStoragePort,
             UserEventDataService userEventDataService,
+            SubjectSubscriptionDataService subscriptionDataService,
             ApplicationEventPublisher eventPublisher,
             CurrentUser currentUser) {
         this.pdfDataService = pdfDataService;
@@ -85,6 +88,7 @@ public class PDFServiceImpl implements PDFService {
         this.userAccountDataService = userAccountDataService;
         this.pdfStoragePort = pdfStoragePort;
         this.userEventDataService = userEventDataService;
+        this.subscriptionDataService = subscriptionDataService;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
@@ -102,6 +106,15 @@ public class PDFServiceImpl implements PDFService {
         logger.info("Fetching recent PDFs (limit: {})", limit);
 
         return toDtos(pdfDataService.getRecent(normalizeLimit(limit)));
+    }
+
+    @Override
+    public List<PDFDto> getRecentPDFsForSubscriber(UserProfile user, Integer limit) throws MathtexpediaUnauthorizedException {
+        logger.info("Fetching recent PDFs of subscribed subjects for user: {} (limit: {})", user.getId(), limit);
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        Set<Long> subjectIds = subscriptionDataService.getSubjectIdsByUser(account.getId());
+        return toDtos(pdfDataService.getRecentBySubjects(subjectIds, normalizeLimit(limit)));
     }
 
     @Override

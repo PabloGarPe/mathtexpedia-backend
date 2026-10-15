@@ -99,6 +99,27 @@ public class QuizDao extends GenericJPADao implements QuizDataService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Quiz> getRecentBySubjects(Collection<Long> subjectIds, int limit, boolean visibleOnly) {
+        if (subjectIds == null || subjectIds.isEmpty())
+            return List.of();
+
+        logger.trace("Getting {} most recent quizzes of subjects {}", limit, subjectIds);
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Quiz> cq = cb.createQuery(Quiz.class);
+        Root<Quiz> root = cq.from(Quiz.class);
+
+        cq.select(root).where(cb.isNotNull(root.get("lastTimeEdited")), root.get("subject").get("id").in(subjectIds),
+                        visibilityPredicate(cb, root, visibleOnly))
+                .orderBy(cb.desc(root.get("lastTimeEdited")), cb.desc(root.get("id")));
+
+        return session.createQuery(cq).setMaxResults(limit).getResultList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<Quiz> getByIds(Collection<Long> quizIds) {
         if (quizIds == null || quizIds.isEmpty())
             return List.of();

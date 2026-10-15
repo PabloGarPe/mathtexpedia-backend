@@ -172,7 +172,8 @@ public class QuizAttemptServiceImpl implements QuizAttemptService {
         for (int i = 0; i < rowList.size(); i++) {
             LeaderboardRow row = rowList.get(i);
             int rank = (int) pageable.getOffset() + i + 1;
-            content.add(new LeaderboardEntryDto(row.getUserId(), row.getUsername(), row.getBestAdjustedScore(), rank));
+            content.add(new LeaderboardEntryDto(row.getUserId(), row.getUsername(), row.getAvatarUpdatedAt() != null,
+                    row.getAvatarUpdatedAt(), row.getBestAdjustedScore(), rank));
         }
 
         return new PageImpl<>(content, pageable, rows.getTotalElements());

@@ -60,6 +60,22 @@ public class QuizController extends GenericController {
         return ResponseEntity.ok(quizService.getQuizzes(isAdmin(user)));
     }
 
+    @Operation(summary = "Cuestionarios nuevos o actualizados de las asignaturas a las que estoy suscrito",
+            description = "Como GET /public/quiz/recent pero solo de las asignaturas suscritas, del más reciente al más antiguo. "
+                    + "Lista vacía si el usuario no tiene suscripciones. Los ocultos solo se incluyen para administradores")
+    @ApiResponse(responseCode = "200", description = "Lista de cuestionarios (puede estar vacía)")
+    @ApiResponse(responseCode = "401", description = "No autenticado")
+    @GetMapping("/recent/subscribed")
+    public ResponseEntity<List<QuizDto>> getRecentSubscribedQuizzes(
+            @Parameter(description = "Máximo de cuestionarios a devolver (por defecto 10, máximo 20)")
+            @RequestParam(required = false) Integer limit,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
+        logger.debug("Called getRecentSubscribedQuizzes by user: {}", user);
+
+        return ResponseEntity.ok(quizService.getRecentQuizzesForSubscriber(user, limit, isAdmin(user)));
+    }
+
     @Operation(summary = "Obtiene un cuestionario por su ID",
             description = "Requiere autenticación, pero no requiere rol ADMIN. Si el cuestionario está oculto, solo lo ve un administrador (404 para el resto)")
     @GetMapping("/{id}")

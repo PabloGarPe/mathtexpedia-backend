@@ -66,6 +66,23 @@ public class PDFController extends GenericController {
     }
 
 
+    @Operation(summary = "PDFs nuevos o actualizados de las asignaturas a las que estoy suscrito",
+            description = "Como GET /public/pdf/recent pero solo de las asignaturas suscritas, del más reciente al más antiguo. "
+                    + "Lista vacía si el usuario no tiene suscripciones")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Lista de PDFs (puede estar vacía)"),
+            @ApiResponse(responseCode = "401", description = "Sin token válido o cuenta de usuario inactiva")
+    })
+    @GetMapping("/recent/subscribed")
+    public ResponseEntity<List<PDFDto>> getRecentSubscribedPDFs(
+            @Parameter(description = "Máximo de PDFs a devolver (por defecto 10, máximo 20)")
+            @RequestParam(required = false) Integer limit,
+            @AuthenticationPrincipal UserProfile user) throws MathtexpediaUnauthorizedException {
+        logger.debug("Called receive to get recent PDFs of subscribed subjects for user {}", user.getId());
+
+        return ResponseEntity.ok(pdfService.getRecentPDFsForSubscriber(user, limit));
+    }
+
     @Operation(summary = "PDFs más vistos por el usuario autenticado",
             description = "Ordenados de más a menos aperturas hechas por el usuario del token. Si aún no ha visto ningún PDF "
                     + "devuelve una lista vacía (el front puede ocultar la hilera). 'viewCount' de cada PDF sigue siendo el total general")

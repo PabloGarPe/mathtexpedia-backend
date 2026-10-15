@@ -22,6 +22,9 @@ public interface PDFService {
 
     List<PDFDto> getRecentPDFs(Integer limit);
 
+    /** Los PDFs más recientes de las asignaturas a las que está suscrito el usuario (vacío si no tiene suscripciones). */
+    List<PDFDto> getRecentPDFsForSubscriber(UserProfile user, Integer limit) throws MathtexpediaUnauthorizedException;
+
     List<PDFDto> getTopViewedPDFs(Integer limit);
 
     List<PDFDto> getTopViewedPDFsForUser(UserProfile user, Integer limit) throws MathtexpediaUnauthorizedException;

@@ -129,9 +129,9 @@ public class QuizAttemptDao extends GenericJPADao implements QuizAttemptDataServ
     public Page<LeaderboardRow> getLeaderboardForQuiz(long quizId, Pageable pageable) {
         TypedQuery<LeaderboardRow> query = em.createQuery(
                 "SELECT new mathtexpedia.es.api.persistence.quizAttempt.LeaderboardRow(" +
-                        "a.user.id, a.user.name, MAX(a.adjustedScore)) " +
+                        "a.user.id, a.user.username, a.user.avatarUpdatedAt, MAX(a.adjustedScore)) " +
                         "FROM QuizAttempt a WHERE a.quiz.id = :quizId " +
-                        "GROUP BY a.user.id, a.user.name " +
+                        "GROUP BY a.user.id, a.user.username, a.user.avatarUpdatedAt " +
                         "ORDER BY MAX(a.adjustedScore) DESC",
                 LeaderboardRow.class
         );
