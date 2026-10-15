@@ -31,18 +31,22 @@ public class OptionController extends GenericController {
         this.optionService = optionService;
     }
 
-    @Operation(summary = "Obtiene una opción por su ID", description = "Requiere autenticación")
+    @Operation(summary = "Obtiene una opción por su ID",
+            description = "Incluye si la opción es correcta, por lo que es solo para edición. Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Opción encontrada"),
             @ApiResponse(responseCode = "404", description = "Opción no encontrada"),
-            @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
     })
     @GetMapping("/{id}")
     public ResponseEntity<OptionDto> getOption(
             @Parameter(description = "ID de la opción", required = true)
-            @PathVariable long id
-    ) {
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
         logger.debug("Called getOption with id: {}", id);
+
+        checkIfAdmin(user);
 
         return optionService.getOption(id)
                 .map(ResponseEntity::ok)

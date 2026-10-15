@@ -1,6 +1,7 @@
 package mathtexpedia.es.api.service.userAccount;
 
 import jakarta.persistence.PersistenceException;
+import mathtexpedia.es.api.domain.event.UserProvisionedEvent;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.userAccount.AuthorCandidateDto;
@@ -12,6 +13,7 @@ import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.persistence.user.UserAccountDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -30,10 +32,13 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private final UserAccountDataService userAccountDataService;
     private final UserAccountMapper userAccountMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public UserAccountServiceImpl(UserAccountDataService userAccountDataService, UserAccountMapper userAccountMapper) {
+    public UserAccountServiceImpl(UserAccountDataService userAccountDataService, UserAccountMapper userAccountMapper,
+                                  ApplicationEventPublisher eventPublisher) {
         this.userAccountDataService = userAccountDataService;
         this.userAccountMapper = userAccountMapper;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -122,7 +127,10 @@ public class UserAccountServiceImpl implements UserAccountService {
         account.setLastSeenAt(Instant.now());
 
         try {
-            return userAccountDataService.create(account);
+            UserAccount created = userAccountDataService.create(account);
+            // Solo si realmente se creó aquí (no en la carrera con otra petición del catch)
+            eventPublisher.publishEvent(new UserProvisionedEvent(created.getId()));
+            return created;
         } catch (DataIntegrityViolationException e) {
             return userAccountDataService.getByExternalId(profile.getId()).orElseThrow();
         }

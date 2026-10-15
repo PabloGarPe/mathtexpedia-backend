@@ -10,27 +10,37 @@ import java.util.Optional;
 
 public interface QuizService {
 
-    List<QuizDto> getQuizzes();
+    // En todos los métodos de lectura, includeHidden solo debe ser true para administradores:
+    // los cuestionarios ocultos no existen para el resto de usuarios.
+
+    List<QuizDto> getQuizzes(boolean includeHidden);
 
     /** Los cuestionarios creados o editados más recientemente. */
-    List<QuizDto> getRecentQuizzes(Integer limit);
+    List<QuizDto> getRecentQuizzes(Integer limit, boolean includeHidden);
 
     /** Los cuestionarios más hechos en general (todos los usuarios). */
-    List<QuizDto> getMostAttemptedQuizzes(Integer limit);
+    List<QuizDto> getMostAttemptedQuizzes(Integer limit, boolean includeHidden);
 
-    Optional<QuizDto> getQuiz(long id);
+    Optional<QuizDto> getQuiz(long id, boolean includeHidden);
 
-    List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException;
+    List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId, boolean includeHidden) throws MathtexpediaNotFoundException;
 
-    List<QuizDto> getQuizzesBySubject(long subjectId) throws MathtexpediaNotFoundException;
+    List<QuizDto> getQuizzesBySubject(long subjectId, boolean includeHidden) throws MathtexpediaNotFoundException;
 
-    QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException;
+    QuizForAttemptDto getQuizForAttempt(long quizId, boolean includeHidden) throws MathtexpediaNotFoundException;
 
+    /** Uso interno (corrección de intentos): no comprueba visibilidad, quien lo llama debe haberla comprobado ya. */
     QuizForCorrectionDto getQuizForCorrection(long quizId) throws MathtexpediaNotFoundException;
 
     QuizDto create(CreateQuizDto dto) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
 
     QuizDto update(long quizId, UpdateQuizDto dto) throws MathtexpediaNotFoundException, MathtexpediaInvalidException, MathtexpediaConflictException;
+
+    /**
+     * Publica u oculta un cuestionario. Publicar uno sin preguntas es inválido. La primera publicación notifica a los
+     * usuarios; ocultarlo y volver a publicarlo después no notifica de nuevo.
+     */
+    QuizDto setVisibility(long quizId, boolean visible) throws MathtexpediaNotFoundException, MathtexpediaInvalidException;
 
     void delete(long id) throws MathtexpediaNotFoundException;
 

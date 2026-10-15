@@ -38,17 +38,22 @@ public class QuestionController extends GenericController {
         this.optionService = optionService;
     }
 
-    @Operation(summary = "Obtiene una pregunta por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene una pregunta por su ID",
+            description = "Incluye la explicación de la respuesta correcta, por lo que es solo para edición. Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pregunta encontrada"),
+            @ApiResponse(responseCode = "401", description = "No autorizado"),
             @ApiResponse(responseCode = "404", description = "Pregunta no encontrada")
     })
     @GetMapping("/{id}")
     public ResponseEntity<QuestionDto> getQuestion(
             @Parameter(description = "ID de la pregunta", required = true)
-            @PathVariable long id
-    ) {
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
         logger.debug("Called getQuestion with id: {}", id);
+
+        checkIfAdmin(user);
 
         Optional<QuestionDto> questionDto = questionService.getQuestion(id);
         return questionDto.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
@@ -119,7 +124,8 @@ public class QuestionController extends GenericController {
         return ResponseEntity.ok(updatedQuestion);
     }
 
-    @Operation(summary = "Obtiene una pregunta con sus opciones por su ID", description = "Requiere autenticación, pero no requiere rol ADMIN")
+    @Operation(summary = "Obtiene las opciones de una pregunta por su ID",
+            description = "Incluye cuál es la opción correcta, por lo que es solo para edición. Para resolver un cuestionario usar GET /quiz/{id}/attempt. Requiere rol ADMIN")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Pregunta encontrada"),
             @ApiResponse(responseCode = "401", description = "No autorizado"),
@@ -128,9 +134,12 @@ public class QuestionController extends GenericController {
     @GetMapping("/{id}/options")
     public ResponseEntity<List<OptionDto>> getQuestionOptions(
             @Parameter(description = "ID de la pregunta", required = true)
-            @PathVariable long id
-    ) throws MathtexpediaNotFoundException {
+            @PathVariable long id,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException {
         logger.debug("Called getQuestionOptions with id: {}", id);
+
+        checkIfAdmin(user);
 
         List<OptionDto> questionDto = optionService.getOptionsByQuestion(id);
         return ResponseEntity.ok(questionDto);

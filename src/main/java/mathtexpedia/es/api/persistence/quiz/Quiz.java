@@ -32,6 +32,17 @@ public class Quiz {
     @Column(name = "last_time_edited")
     private Instant lastTimeEdited;
 
+    /**
+     * Los cuestionarios nuevos nacen ocultos. El default de la columna hace que las filas existentes queden visibles
+     * al añadirla con {@code ddl-auto=update}.
+     */
+    @Column(nullable = false, columnDefinition = "boolean not null default true")
+    private boolean visible;
+
+    /** Primera vez que se hizo visible. Solo esa primera publicación notifica a los usuarios. */
+    @Column(name = "published_at")
+    private Instant publishedAt;
+
     @ManyToOne
     @JoinColumn(name = "subject_id", nullable = false)
     private Subject subject;

@@ -45,6 +45,8 @@ public class QuizMapper {
                 quiz.getLastTimeEdited(),
                 subjectMapper.toDto(quiz.getSubject()),
                 quiz.getSubjectUnit() != null ? subjectUnitMapper.toDto(quiz.getSubjectUnit()) : null,
+                quiz.isVisible(),
+                quiz.getPublishedAt(),
                 attemptCount
         );
     }

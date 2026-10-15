@@ -31,7 +31,7 @@ public class PublicQuizController implements PublicEndpoint {
             security = { @SecurityRequirement})
     @GetMapping
     public ResponseEntity<List<QuizDto>> getAllQuizzes() {
-        return ResponseEntity.ok(quizService.getQuizzes());
+        return ResponseEntity.ok(quizService.getQuizzes(false));
     }
 
     @Operation(summary = "Cuestionarios nuevos o actualizados recientemente",
@@ -41,7 +41,7 @@ public class PublicQuizController implements PublicEndpoint {
     public ResponseEntity<List<QuizDto>> getRecentQuizzes(
             @Parameter(description = "Máximo de cuestionarios a devolver (por defecto 10, máximo 20)")
             @RequestParam(required = false) Integer limit) {
-        return ResponseEntity.ok(quizService.getRecentQuizzes(limit));
+        return ResponseEntity.ok(quizService.getRecentQuizzes(limit, false));
     }
 
     @Operation(summary = "Cuestionarios más hechos en general",
@@ -52,6 +52,6 @@ public class PublicQuizController implements PublicEndpoint {
     public ResponseEntity<List<QuizDto>> getMostAttemptedQuizzes(
             @Parameter(description = "Máximo de cuestionarios a devolver (por defecto 10, máximo 20)")
             @RequestParam(required = false) Integer limit) {
-        return ResponseEntity.ok(quizService.getMostAttemptedQuizzes(limit));
+        return ResponseEntity.ok(quizService.getMostAttemptedQuizzes(limit, false));
     }
 }

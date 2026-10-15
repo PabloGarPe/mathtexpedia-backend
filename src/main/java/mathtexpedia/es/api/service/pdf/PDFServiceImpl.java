@@ -5,6 +5,11 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.event.PdfAuthorsAddedEvent;
+import mathtexpedia.es.api.domain.event.PdfCreatedEvent;
+import mathtexpedia.es.api.domain.event.PdfFileReplacedEvent;
+import mathtexpedia.es.api.domain.event.ResourceDeletedEvent;
+import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFContent;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
@@ -12,6 +17,7 @@ import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
 import mathtexpedia.es.api.domain.model.userEvent.EventType;
 import mathtexpedia.es.api.domain.port.pdf.PDFStoragePort;
 import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
@@ -25,6 +31,7 @@ import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -54,6 +61,8 @@ public class PDFServiceImpl implements PDFService {
     private final UserAccountDataService userAccountDataService;
     private final PDFStoragePort pdfStoragePort;
     private final UserEventDataService userEventDataService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CurrentUser currentUser;
 
     public PDFServiceImpl(
             PDFDataService pdfDataService,
@@ -64,7 +73,9 @@ public class PDFServiceImpl implements PDFService {
             UserAccountService userAccountService,
             UserAccountDataService userAccountDataService,
             PDFStoragePort pdfStoragePort,
-            UserEventDataService userEventDataService) {
+            UserEventDataService userEventDataService,
+            ApplicationEventPublisher eventPublisher,
+            CurrentUser currentUser) {
         this.pdfDataService = pdfDataService;
         this.subjectUnitDataService = subjectUnitDataService;
         this.subjectDataService = subjectDataService;
@@ -74,6 +85,8 @@ public class PDFServiceImpl implements PDFService {
         this.userAccountDataService = userAccountDataService;
         this.pdfStoragePort = pdfStoragePort;
         this.userEventDataService = userEventDataService;
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
     }
 
 
@@ -166,6 +179,8 @@ public class PDFServiceImpl implements PDFService {
 
         try {
             PDF created = pdfDataService.createPDF(pdf);
+            eventPublisher.publishEvent(new PdfCreatedEvent(
+                    created.getId(), authorIds(created), currentUser.externalIdOrNull()));
             return pdfMapper.toDto(created, 0);
         } catch (RuntimeException e) {
             safeDelete(key);
@@ -190,6 +205,8 @@ public class PDFServiceImpl implements PDFService {
         boolean replaceFile = file != null && !file.isEmpty();
         if (replaceFile)
             validateFile(file);
+
+        Set<Long> previousAuthorIds = new HashSet<>(authorIds(toUpdate));
 
         pdfMapper.updateEntity(toUpdate, dto);
         toUpdate.setLastTimeEdited(new Date());
@@ -219,6 +236,8 @@ public class PDFServiceImpl implements PDFService {
         if (newKey != null)
             safeDelete(oldKey);
 
+        publishUpdateEvents(updated, previousAuthorIds, newKey != null);
+
         return toDtos(List.of(updated)).get(0);
     }
 
@@ -231,6 +250,26 @@ public class PDFServiceImpl implements PDFService {
 
         pdfDataService.deletePDF(toDelete);
         safeDelete(key);
+
+        eventPublisher.publishEvent(new ResourceDeletedEvent(ResourceType.PDF, pdfId));
+    }
+
+    private List<Long> authorIds(PDF pdf) {
+        return pdf.getAuthors().stream().map(UserAccount::getId).toList();
+    }
+
+    private void publishUpdateEvents(PDF updated, Set<Long> previousAuthorIds, boolean fileReplaced) {
+        String actor = currentUser.externalIdOrNull();
+
+        List<Long> addedAuthorIds = authorIds(updated).stream()
+                .filter(id -> !previousAuthorIds.contains(id))
+                .toList();
+        if (!addedAuthorIds.isEmpty())
+            eventPublisher.publishEvent(new PdfAuthorsAddedEvent(updated.getId(), addedAuthorIds, actor));
+
+        // Solo el reemplazo del fichero se notifica: cambiar nombre o descripción no es una novedad para el lector
+        if (fileReplaced)
+            eventPublisher.publishEvent(new PdfFileReplacedEvent(updated.getId(), actor));
     }
 
     private int normalizeLimit(Integer limit) {

@@ -1,13 +1,17 @@
 package mathtexpedia.es.api.service.quiz;
 
 import jakarta.persistence.PersistenceException;
+import mathtexpedia.es.api.domain.event.QuizPublishedEvent;
+import mathtexpedia.es.api.domain.event.ResourceDeletedEvent;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.option.CreateOptionDto;
 import mathtexpedia.es.api.domain.model.option.OptionExportableDto;
 import mathtexpedia.es.api.domain.model.question.*;
 import mathtexpedia.es.api.domain.model.quiz.*;
+import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.attemptAnswer.AttemptAnswerDataService;
 import mathtexpedia.es.api.persistence.option.Option;
 import mathtexpedia.es.api.persistence.option.OptionDataService;
@@ -25,6 +29,7 @@ import mathtexpedia.es.api.service.question.QuestionMapper;
 import mathtexpedia.es.api.service.question.QuestionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,6 +60,8 @@ public class QuizServiceImpl implements QuizService {
     private final OptionDataService optionDataService;
     private final QuizMapper quizMapper;
     private final QuestionMapper questionMapper;
+    private final ApplicationEventPublisher eventPublisher;
+    private final CurrentUser currentUser;
 
     public QuizServiceImpl(
             QuizDataService quizDataService,
@@ -67,7 +74,9 @@ public class QuizServiceImpl implements QuizService {
             QuestionDataService questionDataService,
             OptionDataService optionDataService,
             QuizMapper quizMapper,
-            QuestionMapper questionMapper) {
+            QuestionMapper questionMapper,
+            ApplicationEventPublisher eventPublisher,
+            CurrentUser currentUser) {
         this.quizDataService = quizDataService;
         this.quizAttemptDataService = quizAttemptDataService;
         this.attemptAnswerDataService = attemptAnswerDataService;
@@ -79,27 +88,29 @@ public class QuizServiceImpl implements QuizService {
         this.optionDataService = optionDataService;
         this.quizMapper = quizMapper;
         this.questionMapper = questionMapper;
+        this.eventPublisher = eventPublisher;
+        this.currentUser = currentUser;
     }
 
     @Override
-    public List<QuizDto> getQuizzes() {
-        logger.info("Fetching all quizzes");
+    public List<QuizDto> getQuizzes(boolean includeHidden) {
+        logger.info("Fetching all quizzes (includeHidden: {})", includeHidden);
 
-        return toDtos(quizDataService.getAll());
+        return toDtos(quizDataService.getAll(!includeHidden));
     }
 
     @Override
-    public List<QuizDto> getRecentQuizzes(Integer limit) {
-        logger.info("Fetching recent quizzes (limit: {})", limit);
+    public List<QuizDto> getRecentQuizzes(Integer limit, boolean includeHidden) {
+        logger.info("Fetching recent quizzes (limit: {}, includeHidden: {})", limit, includeHidden);
 
-        return toDtos(quizDataService.getRecent(normalizeLimit(limit)));
+        return toDtos(quizDataService.getRecent(normalizeLimit(limit), !includeHidden));
     }
 
     @Override
-    public List<QuizDto> getMostAttemptedQuizzes(Integer limit) {
-        logger.info("Fetching most attempted quizzes (limit: {})", limit);
+    public List<QuizDto> getMostAttemptedQuizzes(Integer limit, boolean includeHidden) {
+        logger.info("Fetching most attempted quizzes (limit: {}, includeHidden: {})", limit, includeHidden);
 
-        List<Long> orderedIds = quizAttemptDataService.getMostAttemptedQuizIds(normalizeLimit(limit));
+        List<Long> orderedIds = quizAttemptDataService.getMostAttemptedQuizIds(normalizeLimit(limit), !includeHidden);
 
         Map<Long, Quiz> byId = new HashMap<>();
         quizDataService.getByIds(orderedIds).forEach(quiz -> byId.put(quiz.getId(), quiz));
@@ -108,31 +119,31 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public Optional<QuizDto> getQuiz(long id) {
+    public Optional<QuizDto> getQuiz(long id, boolean includeHidden) {
         logger.info("Fetching quiz with id: {}", id);
 
-        Optional<Quiz> quiz = quizDataService.getById(id);
+        Optional<Quiz> quiz = quizDataService.getById(id).filter(found -> includeHidden || found.isVisible());
         return quiz.map(found -> toDtos(List.of(found)).get(0));
     }
 
     @Override
-    public List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId) throws MathtexpediaNotFoundException {
+    public List<QuizDto> getQuizzesBySubjectUnit(long subjectUnitId, boolean includeHidden) throws MathtexpediaNotFoundException {
         logger.info("Fetching quizzes for subject unit with id: {}", subjectUnitId);
 
         if (subjectUnitDataService.getById(subjectUnitId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject unit not found with id: " + subjectUnitId);
 
-        return toDtos(quizDataService.getAllBySubjectUnitId(subjectUnitId));
+        return toDtos(quizDataService.getAllBySubjectUnitId(subjectUnitId, !includeHidden));
     }
 
     @Override
-    public List<QuizDto> getQuizzesBySubject(long subjectId) throws MathtexpediaNotFoundException {
+    public List<QuizDto> getQuizzesBySubject(long subjectId, boolean includeHidden) throws MathtexpediaNotFoundException {
         logger.info("Fetching quizzes for subject with id: {}", subjectId);
 
         if (subjectDataService.getById(subjectId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
 
-        return toDtos(quizDataService.getAllBySubjectId(subjectId));
+        return toDtos(quizDataService.getAllBySubjectId(subjectId, !includeHidden));
     }
 
     @Override
@@ -141,6 +152,8 @@ public class QuizServiceImpl implements QuizService {
 
         Quiz quiz = quizMapper.toEntity(dto);
         quiz.setLastTimeEdited(Instant.now());
+        // Los cuestionarios se crean vacíos y se rellenan pregunta a pregunta: nacen ocultos hasta que se publican
+        quiz.setVisible(false);
 
         resolveSubjectAndUnit(quiz, dto.getSubjectId(), dto.getSubjectUnitId());
 
@@ -153,10 +166,11 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
-    public QuizForAttemptDto getQuizForAttempt(long quizId) throws MathtexpediaNotFoundException {
+    public QuizForAttemptDto getQuizForAttempt(long quizId, boolean includeHidden) throws MathtexpediaNotFoundException {
         logger.info("Fetching quiz for attempt with id: {}", quizId);
 
         Quiz quiz = quizDataService.getById(quizId)
+                .filter(found -> includeHidden || found.isVisible())
                 .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
 
         List<QuestionForAttemptDto> questionsForQuiz = new ArrayList<>();
@@ -209,6 +223,27 @@ public class QuizServiceImpl implements QuizService {
     }
 
     @Override
+    public QuizDto setVisibility(long quizId, boolean visible) throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        logger.info("Setting visibility of quiz {} to {}", quizId, visible);
+
+        Quiz quiz = quizDataService.getById(quizId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId));
+
+        if (quiz.isVisible() == visible)
+            return toDtos(List.of(quiz)).get(0);
+
+        if (visible) {
+            if (questionDataService.getAllQuestionsByQuizId(quizId).isEmpty())
+                throw new MathtexpediaInvalidException("Quiz with id: " + quizId + " has no questions and cannot be published");
+
+            return toDtos(List.of(publish(quiz))).get(0);
+        }
+
+        quiz.setVisible(false);
+        return toDtos(List.of(quizDataService.update(quiz))).get(0);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(long id) throws MathtexpediaNotFoundException {
         logger.info("Deleting quiz with id: {}", id);
@@ -226,6 +261,7 @@ public class QuizServiceImpl implements QuizService {
 
         quizDataService.delete(toDelete);
 
+        eventPublisher.publishEvent(new ResourceDeletedEvent(ResourceType.QUIZ, id));
     }
 
     @Override
@@ -282,7 +318,36 @@ public class QuizServiceImpl implements QuizService {
             }
         }
 
+        // Se importa completo, así que se publica al momento (si trae preguntas; uno vacío se queda oculto, como al crearlo)
+        if (!dto.getQuestions().isEmpty()) {
+            Quiz quiz = quizDataService.getById(createdQuiz.getId())
+                    .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + createdQuiz.getId()));
+            return quizMapper.toDto(publish(quiz), 0);
+        }
+
         return createdQuiz;
+    }
+
+    /**
+     * Hace visible el cuestionario. Solo la primera publicación fija {@code publishedAt}, lo sube a "Novedades" y
+     * notifica; ocultarlo y volver a publicarlo (p. ej. para corregir una errata) no avisa a nadie otra vez.
+     */
+    private Quiz publish(Quiz quiz) {
+        boolean firstPublication = quiz.getPublishedAt() == null;
+
+        quiz.setVisible(true);
+        if (firstPublication) {
+            Instant now = Instant.now();
+            quiz.setPublishedAt(now);
+            quiz.setLastTimeEdited(now);
+        }
+
+        Quiz updated = quizDataService.update(quiz);
+
+        if (firstPublication)
+            eventPublisher.publishEvent(new QuizPublishedEvent(updated.getId(), currentUser.externalIdOrNull()));
+
+        return updated;
     }
 
     private int normalizeLimit(Integer limit) {
