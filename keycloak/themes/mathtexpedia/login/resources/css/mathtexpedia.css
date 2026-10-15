@@ -1,0 +1,512 @@
+/* Geist (SIL OFL 1.1), la misma tipografía que el frontend; subconjunto latino. */
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../fonts/geist-latin.woff2") format("woff2");
+}
+
+/* Tema de login de Mathtexpedia: reproduce el aspecto de /auth/login del frontend
+   (shadcn/ui, estilo "new-york", base zinc). Los tokens son los de app/globals.css. */
+
+:root {
+  color-scheme: light;
+  --mx-radius: 0.625rem;
+  --mx-bg: oklch(1 0 0);
+  --mx-fg: oklch(0.141 0.005 285.823);
+  --mx-muted: oklch(0.967 0.001 286.375);
+  --mx-muted-fg: oklch(0.552 0.016 285.938);
+  --mx-primary: oklch(0.21 0.006 285.885);
+  --mx-primary-fg: oklch(0.985 0 0);
+  --mx-border: oklch(0.92 0.004 286.32);
+  --mx-input: oklch(0.92 0.004 286.32);
+  --mx-ring: oklch(0.705 0.015 286.067);
+  --mx-destructive: oklch(0.577 0.245 27.325);
+  --mx-destructive-bg: oklch(0.971 0.013 17.38);
+  --mx-success: oklch(0.527 0.154 150.069);
+  --mx-success-bg: oklch(0.982 0.018 155.826);
+  --mx-warning: oklch(0.555 0.163 48.998);
+  --mx-warning-bg: oklch(0.987 0.022 95.277);
+  --mx-image-filter: none;
+  --mx-brand-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fafafa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2h10'/%3E%3Cpath d='M5 6h14'/%3E%3Crect width='18' height='12' x='3' y='10' rx='2'/%3E%3C/svg%3E");
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --mx-bg: oklch(0.141 0.005 285.823);
+    --mx-fg: oklch(0.985 0 0);
+    --mx-muted: oklch(0.274 0.006 286.033);
+    --mx-muted-fg: oklch(0.705 0.015 286.067);
+    --mx-primary: oklch(0.92 0.004 286.32);
+    --mx-primary-fg: oklch(0.21 0.006 285.885);
+    --mx-border: oklch(1 0 0 / 14%);
+    --mx-input: oklch(1 0 0 / 18%);
+    --mx-ring: oklch(0.552 0.016 285.938);
+    --mx-destructive: oklch(0.704 0.191 22.216);
+    --mx-destructive-bg: oklch(0.25 0.06 22);
+    --mx-success: oklch(0.79 0.17 152);
+    --mx-success-bg: oklch(0.26 0.05 152);
+    --mx-warning: oklch(0.83 0.16 85);
+    --mx-warning-bg: oklch(0.27 0.05 85);
+    --mx-image-filter: brightness(0.2) grayscale(1);
+    --mx-brand-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2318181b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 2h10'/%3E%3Cpath d='M5 6h14'/%3E%3Crect width='18' height='12' x='3' y='10' rx='2'/%3E%3C/svg%3E");
+  }
+}
+
+/* ---------- Página: columna del formulario + imagen a la derecha ---------- */
+
+html.login-pf,
+html.login-pf body {
+  background: var(--mx-bg);
+  color: var(--mx-fg);
+  font-family: "Geist", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 14px;
+  height: auto;
+  min-height: 100svh;
+}
+
+@media (min-width: 1024px) {
+  html.login-pf body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 50%;
+    background: var(--mx-muted) url("../img/logo.png") center / cover no-repeat;
+    filter: var(--mx-image-filter);
+  }
+}
+
+.login-pf-page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  margin: 0;
+  padding: 24px;
+  background: none;
+}
+
+@media (min-width: 768px) {
+  .login-pf-page { padding: 40px; }
+}
+
+@media (min-width: 1024px) {
+  .login-pf-page { width: 50%; }
+}
+
+/* ---------- Marca ---------- */
+
+#kc-header {
+  position: static;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  color: var(--mx-fg);
+  font-size: 0;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+#kc-header-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  font-size: 0;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* El nombre del realm sale en minúsculas ("mathtexpedia"): se pinta la marca a mano. */
+#kc-header-wrapper::before {
+  content: "";
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--mx-primary) var(--mx-brand-icon) center / 16px 16px no-repeat;
+}
+
+#kc-header-wrapper::after {
+  content: "MathTexpedia";
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--mx-fg);
+}
+
+/* ---------- Tarjeta (sin caja: el formulario va directamente sobre el fondo) ---------- */
+
+.login-pf-page .card-pf {
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+  padding: 24px 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.login-pf-page .login-pf-header {
+  margin: 0 0 24px;
+  padding: 0;
+  text-align: center;
+  border: 0;
+}
+
+h1#kc-page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--mx-fg);
+  text-align: center;
+}
+
+.login-pf-page .instruction,
+#kc-content-wrapper .instruction {
+  margin: 8px 0 16px;
+  color: var(--mx-muted-fg);
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Selector de idioma: pequeño, arriba a la derecha de la tarjeta */
+#kc-locale { float: none; text-align: right; margin-bottom: 8px; }
+#kc-locale ul {
+  background: var(--mx-bg);
+  border: 1px solid var(--mx-border);
+  border-radius: var(--mx-radius);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.08);
+  padding: 4px;
+}
+#kc-locale-dropdown a,
+#kc-locale-dropdown button {
+  color: var(--mx-muted-fg);
+  font-size: 13px;
+}
+#kc-locale-dropdown a:hover,
+#kc-locale-dropdown button:hover { color: var(--mx-fg); }
+
+/* ---------- Formulario ---------- */
+
+.form-horizontal .form-group,
+.login-pf-page .form-group {
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.form-horizontal .form-group > [class*="col-"],
+.login-pf-header [class*="col-"] {
+  float: none;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* El asterisco de obligatorio es texto suelto junto al label: se colorea desde el contenedor */
+.form-horizontal .form-group > [class*="col-"]:first-child { color: var(--mx-destructive); }
+.login-pf-header .subtitle { margin-bottom: 12px; }
+
+/* PatternFly dibuja el borde inferior de botones/inputs con ::after */
+.pf-c-button::after,
+.pf-c-form-control::after,
+.pf-c-button.pf-m-control::after { border: 0 !important; }
+
+/* Checkbox "Seguir conectado": en BS3 va posicionado en absoluto fuera de su label */
+.login-pf-page .checkbox input[type="checkbox"] {
+  position: static;
+  margin: 0;
+}
+.login-pf-page .checkbox label { padding-left: 0; }
+
+.pf-c-form__label,
+.pf-c-form__label-text,
+.login-pf-page label {
+  display: inline-block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mx-fg);
+}
+
+.pf-c-form-control,
+.login-pf-page input[type="text"],
+.login-pf-page input[type="email"],
+.login-pf-page input[type="password"],
+.login-pf-page select,
+.login-pf-page textarea {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--mx-fg);
+  background: transparent;
+  border: 1px solid var(--mx-input);
+  border-radius: var(--mx-radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+textarea.pf-c-form-control { height: auto; padding: 8px 12px; }
+
+.pf-c-form-control:focus,
+.login-pf-page input:focus {
+  border-color: var(--mx-ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--mx-ring) 50%, transparent);
+}
+
+.pf-c-form-control[aria-invalid="true"],
+.has-error .pf-c-form-control {
+  border-color: var(--mx-destructive);
+}
+
+.pf-c-form-control::before,
+.pf-c-form-control::after { display: none; }
+
+/* Campo contraseña + botón de mostrar/ocultar en una sola caja */
+.pf-c-input-group { display: flex; align-items: stretch; width: 100%; background: transparent; }
+.pf-c-input-group .pf-c-form-control {
+  flex: 1;
+  background: transparent;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.pf-c-input-group .pf-c-button.pf-m-control {
+  width: 44px;
+  height: 40px;
+  padding: 0;
+  color: var(--mx-muted-fg);
+  background: transparent;
+  border: 1px solid var(--mx-input);
+  border-left: 0;
+  border-radius: 0 var(--mx-radius) var(--mx-radius) 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  cursor: pointer;
+}
+.pf-c-input-group .pf-c-button.pf-m-control:hover { color: var(--mx-fg); background: var(--mx-muted); }
+
+/* "Seguir conectado" + "¿Has olvidado tu contraseña?" */
+.login-pf-settings {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.login-pf-settings .checkbox { margin: 0; }
+.login-pf-settings .checkbox label,
+.pf-c-check__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 400;
+  color: var(--mx-muted-fg);
+}
+.login-pf-page input[type="checkbox"],
+.login-pf-page input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--mx-primary);
+}
+
+.login-pf-page a {
+  color: var(--mx-fg);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.login-pf-page a:hover { color: var(--mx-fg); text-decoration-thickness: 2px; }
+.login-pf-settings a { color: var(--mx-muted-fg); font-size: 13px; }
+
+/* ---------- Botones ---------- */
+
+.pf-c-button.pf-m-primary,
+#kc-login,
+input[type="submit"].pf-m-primary {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 40px;
+  padding: 0 16px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mx-primary-fg);
+  background: var(--mx-primary);
+  border: 0;
+  border-radius: var(--mx-radius);
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.pf-c-button.pf-m-primary:hover,
+.pf-c-button.pf-m-primary:focus,
+#kc-login:hover {
+  color: var(--mx-primary-fg);
+  background: var(--mx-primary);
+  opacity: 0.9;
+}
+.pf-c-button.pf-m-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.pf-c-button.btn-lg { font-size: 14px; }
+
+#kc-form-buttons { margin-top: 8px; }
+
+/* Botón secundario (p. ej. "Cancelar", "Volver") */
+.pf-c-button.btn-default,
+.pf-c-button.pf-m-secondary {
+  height: 40px;
+  padding: 0 16px;
+  color: var(--mx-fg);
+  background: transparent;
+  border: 1px solid var(--mx-input);
+  border-radius: var(--mx-radius);
+}
+
+/* ---------- Proveedores sociales (Google) ---------- */
+
+#kc-social-providers { margin-top: 24px; }
+#kc-social-providers hr { display: none; }
+
+#kc-social-providers h2 {
+  margin: 0 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  text-align: center;
+  color: var(--mx-muted-fg);
+}
+#kc-social-providers h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#kc-social-providers h2::before,
+#kc-social-providers h2::after {
+  content: "";
+  position: static;
+  flex: 1;
+  border-top: 1px solid var(--mx-border);
+}
+
+#kc-social-providers ul { margin: 0; padding: 0; list-style: none; }
+
+#kc-social-providers .kc-social-item,
+.pf-c-button.pf-m-control.kc-social-item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  padding: 0 16px;
+  margin: 0;
+  color: var(--mx-fg);
+  background: transparent;
+  border: 1px solid var(--mx-input);
+  border-radius: var(--mx-radius);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+}
+#kc-social-providers .kc-social-item:hover { background: var(--mx-muted); text-decoration: none; }
+#kc-social-providers .kc-social-provider-logo {
+  position: static;
+  margin: 0;
+  color: var(--mx-fg);
+  font-size: 15px;
+  line-height: 1;
+}
+#kc-social-providers .kc-social-provider-name { position: static; margin: 0; }
+
+/* ---------- Enlace de registro / pie ---------- */
+
+.login-pf-signup,
+#kc-info,
+#kc-info-wrapper,
+#kc-registration {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+#kc-registration,
+#kc-info-wrapper {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--mx-fg);
+}
+.login-pf-signup { font-size: 14px; }
+
+/* ---------- Mensajes (error / éxito / aviso) ---------- */
+
+.pf-c-alert,
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  box-sizing: border-box;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  color: var(--mx-fg);
+  background: var(--mx-muted);
+  border: 1px solid var(--mx-border);
+  border-radius: var(--mx-radius);
+  font-size: 14px;
+}
+.pf-c-alert .pf-c-alert__title,
+.pf-c-alert .kc-feedback-text,
+.alert .kc-feedback-text { margin: 0; font-size: 14px; color: inherit; }
+.pf-c-alert__icon, .pf-c-alert i { color: inherit; }
+
+.pf-c-alert.pf-m-danger,
+.alert-error {
+  color: var(--mx-destructive);
+  background: var(--mx-destructive-bg);
+  border-color: color-mix(in oklab, var(--mx-destructive) 35%, transparent);
+}
+.pf-c-alert.pf-m-success,
+.alert-success {
+  color: var(--mx-success);
+  background: var(--mx-success-bg);
+  border-color: color-mix(in oklab, var(--mx-success) 35%, transparent);
+}
+.pf-c-alert.pf-m-warning,
+.alert-warning {
+  color: var(--mx-warning);
+  background: var(--mx-warning-bg);
+  border-color: color-mix(in oklab, var(--mx-warning) 35%, transparent);
+}
+
+/* Errores de validación bajo cada campo */
+.pf-c-form__helper-text.pf-m-error,
+.kc-feedback-text,
+span.required { color: var(--mx-destructive); font-size: 13px; }
+.pf-c-form__helper-text.pf-m-error { display: block; margin-top: 6px; }
+
+/* "* Campos requeridos" en el registro */
+.subtitle { margin: 0 0 16px; text-align: right; font-size: 13px; color: var(--mx-muted-fg); }
+.subtitle .required { color: var(--mx-destructive); }
+
+/* Pasos de recuperar contraseña / verificar email, etc. */
+#kc-info-message p, .login-pf-page p { color: var(--mx-fg); }
+#kc-back, .login-pf-page #kc-form-buttons + div { margin-top: 16px; text-align: center; }
+
+/* ---------- Móvil ---------- */
+
+@media (max-width: 480px) {
+  .login-pf-page { padding: 20px 16px; }
+  .login-pf-page .card-pf { padding-top: 16px; }
+}
