@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.text.SimpleDateFormat;
 
@@ -117,6 +118,13 @@ public class GenericController {
         logErrorAndHttpResponse(e, "400", Level.ERROR);
 
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    protected ResponseEntity<Object> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        logErrorAndHttpResponse(e, "413", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.PAYLOAD_TOO_LARGE);
     }
 
     @ExceptionHandler(Exception.class)
