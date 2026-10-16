@@ -35,7 +35,7 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
     @Override
     @Transactional
     public int fanOutInApp(long notificationId, NotificationType type, Collection<Long> targetUserIds,
-                           Long subjectId, boolean onlySubscribers,
+                           Collection<Long> degreeIds, Long subjectId, boolean onlySubscribers,
                            String excludedExternalId, Collection<Long> excludedUserIds) {
         logger.trace("Fanning out notification {} of type {}", notificationId, type);
 
@@ -47,6 +47,7 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
 
         boolean checkPreference = type.configurable();
         boolean hasActor = excludedExternalId != null;
+        boolean hasDegrees = degreeIds != null && !degreeIds.isEmpty();
         boolean hasExcluded = excludedUserIds != null && !excludedUserIds.isEmpty();
         boolean checkScope = checkPreference && type.supportedScopes().contains(NotificationScope.SUBSCRIBED);
 
@@ -79,6 +80,8 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
             sql.append("  AND u.id NOT IN (:excluded)\n");
         if (hasTargets)
             sql.append("  AND u.id IN (:targets)\n");
+        if (hasDegrees)
+            sql.append("  AND (u.degree_id IS NULL OR u.degree_id IN (:degreeIds))\n");
 
         Query query = em.createNativeQuery(sql.toString())
                 .setParameter("notificationId", notificationId)
@@ -98,6 +101,8 @@ public class NotificationDao extends GenericJPADao implements NotificationDataSe
             query.setParameter("excluded", excludedUserIds);
         if (hasTargets)
             query.setParameter("targets", targetUserIds);
+        if (hasDegrees)
+            query.setParameter("degreeIds", degreeIds);
 
         return query.executeUpdate();
     }

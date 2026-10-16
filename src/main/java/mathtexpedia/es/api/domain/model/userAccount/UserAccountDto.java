@@ -3,6 +3,7 @@ package mathtexpedia.es.api.domain.model.userAccount;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import mathtexpedia.es.api.domain.model.degree.DegreeDto;
 
 import java.time.Instant;
 
@@ -33,6 +34,12 @@ public class UserAccountDto {
 
     @Schema(description = "Estudios que cursa", nullable = true, example = "Grado en Matemáticas")
     private String studies;
+
+    @Schema(description = "Grado del catálogo que cursa. Nulo si no lo ha elegido", nullable = true)
+    private DegreeDto degree;
+
+    @Schema(description = "Curso del grado en el que está (de 1 a degree.years). Nulo si no lo ha indicado o no tiene grado", nullable = true, example = "3")
+    private Integer currentYear;
 
     @Schema(description = "Si el usuario tiene foto de perfil. Se descarga de GET /users/{id}/avatar")
     private boolean hasAvatar;
