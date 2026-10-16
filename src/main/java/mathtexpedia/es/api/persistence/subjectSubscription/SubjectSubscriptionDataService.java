@@ -23,4 +23,18 @@ public interface SubjectSubscriptionDataService {
 
     /** @return true si existía y se ha borrado */
     boolean remove(long userAccountId, long subjectId);
+
+    /**
+     * Suscribe al usuario a todas las asignaturas colocadas ahora en ese grado y año (y cuatrimestre, si se indica), sin fallar
+     * por las que ya tenía. Es una foto fija: las que se coloquen después no se suscriben solas.
+     *
+     * @return número de suscripciones nuevas
+     */
+    int addAll(long userAccountId, long degreeId, int year, Integer semester);
+
+    /** Da de baja al usuario de las asignaturas colocadas ahora en ese curso, estén o no colocadas también en otro. @return las borradas */
+    int removeAll(long userAccountId, long degreeId, int year, Integer semester);
+
+    /** Suscripciones del usuario a las asignaturas colocadas ahora en ese curso, con su asignatura cargada y ordenadas por nombre. */
+    List<SubjectSubscription> getByUserAndCourse(long userAccountId, long degreeId, int year, Integer semester);
 }

@@ -96,4 +96,22 @@ public class UserEventDao extends GenericJPADao implements UserEventDataService 
 
         return ids.stream().map(Number::longValue).toList();
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasViewedPdf(long userAccountId, long pdfId) {
+        logger.trace("Checking if user {} has viewed PDF {}", userAccountId, pdfId);
+
+        return (Boolean) em.createNativeQuery("""
+                SELECT EXISTS (
+                    SELECT 1 FROM user_event e
+                    WHERE e.user_id = :userId
+                      AND e.event_type = 'PDF_VIEWED'
+                      AND CAST(e.payload ->> 'pdfId' AS bigint) = :pdfId
+                )
+                """)
+                .setParameter("userId", userAccountId)
+                .setParameter("pdfId", pdfId)
+                .getSingleResult();
+    }
 }

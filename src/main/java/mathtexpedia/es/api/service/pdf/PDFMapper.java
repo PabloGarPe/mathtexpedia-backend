@@ -2,6 +2,7 @@ package mathtexpedia.es.api.service.pdf;
 
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdfRating.PdfRatingSummaryDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.user.UserAccount;
@@ -39,7 +40,7 @@ public class PDFMapper {
         target.setDescription(dto.getDescription());
     }
 
-    public PDFDto toDto(PDF pdf, long viewCount) {
+    public PDFDto toDto(PDF pdf, long viewCount, PdfRatingSummaryDto rating) {
         List<UserAccount> authors = pdf.getAuthors();
         List<String> authorNames = authors.stream().map(UserAccount::getUsername).toList();
 
@@ -53,7 +54,8 @@ public class PDFMapper {
                 authorNames.isEmpty() ? null : authorNames.get(0),
                 authorNames.size() > 1 ? authorNames.subList(1, authorNames.size()) : List.of(),
                 authors.stream().map(userAccountMapper::toAuthorDto).toList(),
-                viewCount
+                viewCount,
+                rating
         );
     }
 }

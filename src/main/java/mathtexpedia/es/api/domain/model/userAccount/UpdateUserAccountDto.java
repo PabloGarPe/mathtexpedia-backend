@@ -1,6 +1,7 @@
 package mathtexpedia.es.api.domain.model.userAccount;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -36,4 +37,12 @@ public class UpdateUserAccountDto {
     @Schema(description = "Estudios que cursa (opcional). Nulo o vacío lo borra", nullable = true, example = "Grado en Matemáticas")
     @Size(max = 150)
     private String studies;
+
+    @Schema(description = "Identificador de un grado del catálogo (GET /public/degree). Opcional: nulo lo borra. 404 si no existe", nullable = true, example = "1")
+    private Long degreeId;
+
+    @Schema(description = "Curso del grado en el que está (de 1 al número de años del grado). Opcional: nulo lo borra. "
+            + "Exige degreeId (400 si falta) y no puede superar los años del grado (400)", nullable = true, example = "3")
+    @Min(value = 1, message = "El curso debe ser como mínimo 1")
+    private Integer currentYear;
 }

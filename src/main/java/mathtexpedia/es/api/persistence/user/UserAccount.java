@@ -4,8 +4,13 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Setter;
+import lombok.ToString;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
+import mathtexpedia.es.api.persistence.degree.Degree;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.util.Locale;
@@ -47,6 +52,18 @@ public class UserAccount {
 
     @Column(length = 150)
     private String studies;
+
+    /** Grado del catálogo que cursa (opcional). Convive con el texto libre {@code studies}, para quien no lo encuentre en el catálogo. */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JoinColumn(name = "degree_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Degree degree;
+
+    /** Curso del grado en el que está (1..años del grado). Solo tiene valor si hay {@link #degree}. */
+    @Column(name = "current_year")
+    private Integer currentYear;
 
     /** Última vez que se cambió la foto de perfil; nulo si no tiene. Sirve también como versión para la caché. */
     @Column(name = "avatar_updated_at")

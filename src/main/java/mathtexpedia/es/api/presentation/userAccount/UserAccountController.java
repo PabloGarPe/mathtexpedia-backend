@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.userAccount.UpdateUserAccountDto;
 import mathtexpedia.es.api.domain.model.userAccount.UserAccountDto;
@@ -48,18 +49,19 @@ public class UserAccountController extends GenericController {
     @Operation(summary = "Actualiza el perfil del usuario autenticado",
             description = "Sustituye todos los datos del perfil: el username es obligatorio y los demás campos, opcionales; "
                     + "uno que no se envíe (o venga en blanco) se borra. El primer guardado marca el perfil como completado. "
-                    + "No toca la foto de perfil")
+                    + "El grado y el curso (degreeId, currentYear) siguen la misma regla: nulos se borran. No toca la foto de perfil")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Perfil actualizado"),
-            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos (username vacío o con formato incorrecto, campos demasiado largos)"),
+            @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos (username vacío o con formato incorrecto, campos demasiado largos, currentYear sin degreeId o mayor que los años del grado)"),
             @ApiResponse(responseCode = "401", description = "No autenticado"),
+            @ApiResponse(responseCode = "404", description = "El grado indicado en degreeId no existe"),
             @ApiResponse(responseCode = "409", description = "El username ya lo usa otro usuario (sin distinguir mayúsculas)")
     })
     @PutMapping
     public ResponseEntity<UserAccountDto> updateMe(
             @RequestBody @Valid UpdateUserAccountDto dto,
             @AuthenticationPrincipal UserProfile user
-    ) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException {
+    ) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.debug("Called updateMe for user: {} with dto: {}", user, dto);
         return ResponseEntity.ok(userAccountService.updateUserAccount(user, dto));
     }
