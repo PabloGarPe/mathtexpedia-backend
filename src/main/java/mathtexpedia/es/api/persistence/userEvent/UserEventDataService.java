@@ -17,4 +17,7 @@ public interface UserEventDataService {
 
     List<Long> getTopViewedPdfIdsByUser(long userAccountId, int limit);
 
+    /** Si el usuario ha abierto el PDF al menos una vez. */
+    boolean hasViewedPdf(long userAccountId, long pdfId);
+
 }

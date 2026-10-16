@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
@@ -98,6 +100,13 @@ public class GenericController {
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(MathtexpediaForbiddenException.class)
+    protected ResponseEntity<Object> handleMathtexpediaForbiddenException(MathtexpediaForbiddenException e) {
+        logErrorAndHttpResponse(e, "403", Level.ERROR);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.FORBIDDEN);
+    }
+
     @ExceptionHandler(MathtexpediaNotFoundException.class)
     protected ResponseEntity<Object> handleMathtexpediaNotFoundException(MathtexpediaNotFoundException e) {
         logErrorAndHttpResponse(e, "404", Level.ERROR);
@@ -129,6 +138,22 @@ public class GenericController {
     /** Cuerpo JSON ilegible o con valores inválidos (p. ej. un enum desconocido): es un error del cliente, no del servidor. */
     @ExceptionHandler(HttpMessageNotReadableException.class)
     protected ResponseEntity<Object> handleHttpMessageNotReadableException(HttpMessageNotReadableException e) {
+        logErrorAndHttpResponse(e, "400", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    /** Parámetro de la URL con un valor que no encaja (p. ej. un enum desconocido o un id no numérico): error del cliente. */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    protected ResponseEntity<Object> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException e) {
+        logErrorAndHttpResponse(e, "400", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
+    }
+
+    /** Falta un parámetro obligatorio de la URL: error del cliente. */
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    protected ResponseEntity<Object> handleMissingServletRequestParameterException(MissingServletRequestParameterException e) {
         logErrorAndHttpResponse(e, "400", Level.WARN);
 
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.BAD_REQUEST);
