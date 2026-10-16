@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PdfSort;
 import mathtexpedia.es.api.domain.model.subject.SubjectDetailDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectFilter;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
@@ -106,14 +107,19 @@ public class PublicSubjectController extends GenericController implements Public
     @Operation(summary = "Obtiene todos los pdfs de una asignatura", security = { @SecurityRequirement })
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de pdfs obtenida"),
+            @ApiResponse(responseCode = "400", description = "Valor de 'sort' no válido"),
             @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura con ese ID")
     })
     @GetMapping("/{id}/pdfs")
     public ResponseEntity<List<PDFDto>> getSubjectPDFs(
             @Parameter(description = "ID de la asignatura", required = true)
-            @PathVariable long id
+            @PathVariable long id,
+            @Parameter(description = "Orden del listado: RATING (mejor valorados primero), VIEWS (más vistos), "
+                    + "RECENT (editados más recientemente) o NAME (alfabético sin distinguir mayúsculas ni acentos). "
+                    + "Si se omite, orden por defecto")
+            @RequestParam(required = false) PdfSort sort
     ) throws MathtexpediaNotFoundException {
-        List<PDFDto> pdfs = pdfService.getPDFsBySubject(id);
+        List<PDFDto> pdfs = pdfService.getPDFsBySubject(id, sort);
         return ResponseEntity.ok(pdfs);
     }
 }

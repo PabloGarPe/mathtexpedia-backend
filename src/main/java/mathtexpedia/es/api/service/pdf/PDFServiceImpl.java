@@ -13,6 +13,8 @@ import mathtexpedia.es.api.domain.model.notification.ResourceType;
 import mathtexpedia.es.api.domain.model.pdf.CreatePDFDto;
 import mathtexpedia.es.api.domain.model.pdf.PDFContent;
 import mathtexpedia.es.api.domain.model.pdf.PDFDto;
+import mathtexpedia.es.api.domain.model.pdf.PdfSort;
+import mathtexpedia.es.api.domain.model.pdfRating.PdfRatingSummaryDto;
 import mathtexpedia.es.api.domain.model.pdf.UpdatePDFDto;
 import mathtexpedia.es.api.domain.model.userEvent.EventType;
 import mathtexpedia.es.api.domain.port.pdf.PDFStoragePort;
@@ -20,6 +22,7 @@ import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.infrastructure.security.CurrentUser;
 import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
+import mathtexpedia.es.api.persistence.pdfRating.PdfRatingDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscriptionDataService;
@@ -28,6 +31,7 @@ import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.persistence.user.UserAccountDataService;
 import mathtexpedia.es.api.persistence.userEvent.UserEventDataService;
+import mathtexpedia.es.api.service.pdfRating.PdfRatingService;
 import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import mathtexpedia.es.api.service.userEvent.UserEventService;
 import org.slf4j.Logger;
@@ -40,6 +44,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
+import java.text.Collator;
 import java.util.*;
 
 @Service
@@ -52,6 +57,7 @@ public class PDFServiceImpl implements PDFService {
     private static final String KEY_PREFIX = "pdfs/";
     private static final int DEFAULT_FEED_LIMIT = 10;
     private static final int MAX_FEED_LIMIT = 20;
+    private static final int MIN_TOP_RATED_VOTES = 3;
 
     private final PDFDataService pdfDataService;
     private final SubjectUnitDataService subjectUnitDataService;
@@ -63,6 +69,8 @@ public class PDFServiceImpl implements PDFService {
     private final PDFStoragePort pdfStoragePort;
     private final UserEventDataService userEventDataService;
     private final SubjectSubscriptionDataService subscriptionDataService;
+    private final PdfRatingService pdfRatingService;
+    private final PdfRatingDataService pdfRatingDataService;
     private final ApplicationEventPublisher eventPublisher;
     private final CurrentUser currentUser;
 
@@ -77,6 +85,8 @@ public class PDFServiceImpl implements PDFService {
             PDFStoragePort pdfStoragePort,
             UserEventDataService userEventDataService,
             SubjectSubscriptionDataService subscriptionDataService,
+            PdfRatingService pdfRatingService,
+            PdfRatingDataService pdfRatingDataService,
             ApplicationEventPublisher eventPublisher,
             CurrentUser currentUser) {
         this.pdfDataService = pdfDataService;
@@ -89,16 +99,18 @@ public class PDFServiceImpl implements PDFService {
         this.pdfStoragePort = pdfStoragePort;
         this.userEventDataService = userEventDataService;
         this.subscriptionDataService = subscriptionDataService;
+        this.pdfRatingService = pdfRatingService;
+        this.pdfRatingDataService = pdfRatingDataService;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
     }
 
 
     @Override
-    public List<PDFDto> getPDFs() {
-        logger.info("Fetching all PDFs");
+    public List<PDFDto> getPDFs(PdfSort sort) {
+        logger.info("Fetching all PDFs (sort: {})", sort);
 
-        return toDtos(pdfDataService.getAll());
+        return sorted(toDtos(pdfDataService.getAll()), sort);
     }
 
     @Override
@@ -133,6 +145,13 @@ public class PDFServiceImpl implements PDFService {
     }
 
     @Override
+    public List<PDFDto> getTopRatedPDFs(Integer limit) {
+        logger.info("Fetching top rated PDFs (limit: {})", limit);
+
+        return toDtosInOrder(pdfRatingDataService.getTopRatedPdfIds(MIN_TOP_RATED_VOTES, normalizeLimit(limit)));
+    }
+
+    @Override
     public PDFContent getPDFContent(long pdfId, UserProfile user) throws MathtexpediaNotFoundException {
         logger.info("Fetching content of PDF with id: {} for user: {}", pdfId, user.getId());
 
@@ -159,13 +178,13 @@ public class PDFServiceImpl implements PDFService {
     }
 
     @Override
-    public List<PDFDto> getPDFsBySubject(long subjectId) throws MathtexpediaNotFoundException {
-        logger.info("Fetching PDFs for subject with id: {}", subjectId);
+    public List<PDFDto> getPDFsBySubject(long subjectId, PdfSort sort) throws MathtexpediaNotFoundException {
+        logger.info("Fetching PDFs for subject with id: {} (sort: {})", subjectId, sort);
 
         if (subjectDataService.getById(subjectId).isEmpty())
             throw new MathtexpediaNotFoundException("Subject not found with id: " + subjectId);
 
-        return toDtos(pdfDataService.getAllForSubject(subjectId));
+        return sorted(toDtos(pdfDataService.getAllForSubject(subjectId)), sort);
     }
 
 
@@ -194,7 +213,7 @@ public class PDFServiceImpl implements PDFService {
             PDF created = pdfDataService.createPDF(pdf);
             eventPublisher.publishEvent(new PdfCreatedEvent(
                     created.getId(), authorIds(created), currentUser.externalIdOrNull()));
-            return pdfMapper.toDto(created, 0);
+            return pdfMapper.toDto(created, 0, PdfRatingSummaryDto.empty());
         } catch (RuntimeException e) {
             safeDelete(key);
             if (e instanceof PersistenceException)
@@ -249,6 +268,9 @@ public class PDFServiceImpl implements PDFService {
         if (newKey != null)
             safeDelete(oldKey);
 
+        // Un autor no puede tener voto en su PDF: si se añade como autor a alguien que ya lo había votado, se borra su voto
+        pdfRatingDataService.deleteByUsers(pdfId, authorIds(updated));
+
         publishUpdateEvents(updated, previousAuthorIds, newKey != null);
 
         return toDtos(List.of(updated)).get(0);
@@ -292,10 +314,43 @@ public class PDFServiceImpl implements PDFService {
     }
 
     private List<PDFDto> toDtos(List<PDF> pdfs) {
-        Map<Long, Long> views = userEventDataService.countPdfViews(pdfs.stream().map(PDF::getId).toList());
+        List<Long> ids = pdfs.stream().map(PDF::getId).toList();
+        Map<Long, Long> views = userEventDataService.countPdfViews(ids);
+        Map<Long, PdfRatingSummaryDto> ratings = pdfRatingService.getSummaries(ids);
         return pdfs.stream()
-                .map(pdf -> pdfMapper.toDto(pdf, views.getOrDefault(pdf.getId(), 0L)))
+                .map(pdf -> pdfMapper.toDto(pdf, views.getOrDefault(pdf.getId(), 0L), ratings.get(pdf.getId())))
                 .toList();
+    }
+
+    /** Ordena los DTOs según el criterio; con {@code sort} nulo los devuelve tal cual. */
+    private List<PDFDto> sorted(List<PDFDto> dtos, PdfSort sort) {
+        if (sort == null)
+            return dtos;
+
+        return dtos.stream().sorted(comparatorFor(sort)).toList();
+    }
+
+    private Comparator<PDFDto> comparatorFor(PdfSort sort) {
+        Comparator<PDFDto> byIdDesc = Comparator.comparing(PDFDto::getId, Comparator.reverseOrder());
+
+        return switch (sort) {
+            case RATING -> Comparator
+                    .comparingDouble((PDFDto dto) -> dto.getRating().getScore()).reversed()
+                    .thenComparing(Comparator.comparingLong((PDFDto dto) -> dto.getRating().getLikeCount()).reversed())
+                    .thenComparing(Comparator.comparingLong(PDFDto::getViewCount).reversed())
+                    .thenComparing(byIdDesc);
+            case VIEWS -> Comparator.comparingLong(PDFDto::getViewCount).reversed().thenComparing(byIdDesc);
+            case RECENT -> Comparator
+                    .comparing(PDFDto::getLastTimeEdited, Comparator.nullsLast(Comparator.<Date>reverseOrder()))
+                    .thenComparing(byIdDesc);
+            case NAME -> {
+                // PRIMARY ignora mayúsculas y acentos
+                Collator collator = Collator.getInstance(Locale.forLanguageTag("es"));
+                collator.setStrength(Collator.PRIMARY);
+                yield Comparator.comparing(PDFDto::getName, Comparator.nullsLast(collator))
+                        .thenComparing(PDFDto::getId);
+            }
+        };
     }
 
     private List<PDFDto> toDtosInOrder(List<Long> orderedIds) {

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import mathtexpedia.es.api.domain.model.pdfRating.PdfRatingSummaryDto;
 import mathtexpedia.es.api.domain.model.subject.SubjectDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
 import mathtexpedia.es.api.domain.model.userAccount.AuthorDto;
@@ -39,4 +40,7 @@ public class PDFDto {
     @Schema(description = "Número total de veces que se ha abierto el PDF (todos los usuarios; cada apertura cuenta, aunque sea del mismo usuario). 0 si nunca se ha visto",
             example = "42")
     private long viewCount;
+
+    @Schema(description = "Resumen público de valoraciones (👍/👎). Nunca dice quién votó")
+    private PdfRatingSummaryDto rating;
 }
