@@ -7,11 +7,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.subject.CreateSubjectDto;
-import mathtexpedia.es.api.domain.model.subject.SubjectDto;
+import mathtexpedia.es.api.domain.model.subject.SubjectDetailDto;
 import mathtexpedia.es.api.domain.model.subject.UpdateSubjectDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.CreateSubjectUnitDto;
 import mathtexpedia.es.api.domain.model.subjectUnit.SubjectUnitDto;
@@ -43,23 +44,27 @@ public class SubjectController extends GenericController {
         this.quizService = quizService;
     }
 
-    @Operation(summary = "Crea una nueva asignatura en el catálogo", description = "Requiere rol ADMIN")
+    @Operation(summary = "Crea una nueva asignatura en el catálogo",
+            description = "Requiere rol ADMIN. Opcionalmente la coloca en grados con 'placements' (sin colocaciones si es nulo o vacío)")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Asignatura creada"),
+            @ApiResponse(responseCode = "400", description = "Colocación inválida: grado repetido en la lista o año fuera de los años del grado"),
+            @ApiResponse(responseCode = "404", description = "Alguna colocación referencia un grado que no existe"),
             @ApiResponse(responseCode = "409", description = "Ya existe una asignatura con ese nombre"),
             @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN")
     })
     @PostMapping("/create")
-    public ResponseEntity<SubjectDto> createSubject(
+    public ResponseEntity<SubjectDetailDto> createSubject(
             @Parameter(description = "Datos de la asignatura a crear", required = true)
             @RequestBody @Valid CreateSubjectDto dto,
             @AuthenticationPrincipal UserProfile user
-    ) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException {
+    ) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException,
+            MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.debug("Called createSubject with dto {}", dto);
 
         checkIfAdmin(user);
 
-        SubjectDto createdSubject = subjectService.create(dto);
+        SubjectDetailDto createdSubject = subjectService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdSubject);
     }
 
@@ -84,26 +89,30 @@ public class SubjectController extends GenericController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Actualiza una asignatura del catálogo", description = "Requiere rol ADMIN")
+    @Operation(summary = "Actualiza una asignatura del catálogo",
+            description = "Requiere rol ADMIN. Si 'placements' es nulo no se tocan las colocaciones; si es una lista (también vacía) "
+                    + "reemplaza el conjunto completo de colocaciones")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Asignatura actualizada"),
-            @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura con ese ID"),
+            @ApiResponse(responseCode = "400", description = "Colocación inválida: grado repetido en la lista o año fuera de los años del grado"),
+            @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura con ese ID o alguna colocación referencia un grado que no existe"),
             @ApiResponse(responseCode = "401", description = "El usuario autenticado no tiene rol ADMIN"),
             @ApiResponse(responseCode = "409", description = "Ya existe una asignatura con ese nombre")
     })
     @PutMapping("/update/{id}")
-    public ResponseEntity<SubjectDto> updateSubject(
+    public ResponseEntity<SubjectDetailDto> updateSubject(
             @Parameter(description = "ID de la asignatura a actualizar", required = true)
             @PathVariable long id,
             @Parameter(description = "Datos para actualizar la asignatura", required = true)
             @RequestBody @Valid UpdateSubjectDto dto,
             @AuthenticationPrincipal UserProfile user
-    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaConflictException,
+            MathtexpediaInvalidException {
         logger.debug("Called updateSubject with id {} and dto {}", id, dto);
 
         checkIfAdmin(user);
 
-        SubjectDto updatedSubject = subjectService.update(id, dto);
+        SubjectDetailDto updatedSubject = subjectService.update(id, dto);
         return ResponseEntity.ok(updatedSubject);
     }
 
@@ -203,7 +212,8 @@ public class SubjectController extends GenericController {
             @Parameter(description = "Datos para actualizar el tema", required = true)
             @RequestBody @Valid UpdateSubjectUnitDto dto,
             @AuthenticationPrincipal UserProfile user
-    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaConflictException,
+            MathtexpediaInvalidException {
         logger.debug("Called updateSubjectUnit with id {} and dto {}", id, dto);
 
         checkIfAdmin(user);

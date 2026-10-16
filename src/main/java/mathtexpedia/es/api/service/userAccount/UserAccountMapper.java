@@ -4,11 +4,19 @@ import mathtexpedia.es.api.domain.model.userAccount.AuthorCandidateDto;
 import mathtexpedia.es.api.domain.model.userAccount.AuthorDto;
 import mathtexpedia.es.api.domain.model.userAccount.UpdateUserAccountDto;
 import mathtexpedia.es.api.domain.model.userAccount.UserAccountDto;
+import mathtexpedia.es.api.persistence.degree.Degree;
 import mathtexpedia.es.api.persistence.user.UserAccount;
+import mathtexpedia.es.api.service.degree.DegreeMapper;
 import org.springframework.stereotype.Component;
 
 @Component
 public class UserAccountMapper {
+
+    private final DegreeMapper degreeMapper;
+
+    public UserAccountMapper(DegreeMapper degreeMapper) {
+        this.degreeMapper = degreeMapper;
+    }
 
     public UserAccountDto toDto(UserAccount userAccount) {
         return new UserAccountDto(
@@ -20,6 +28,8 @@ public class UserAccountMapper {
                 userAccount.getBio(),
                 userAccount.getUniversity(),
                 userAccount.getStudies(),
+                userAccount.getDegree() == null ? null : degreeMapper.toDto(userAccount.getDegree()),
+                userAccount.getCurrentYear(),
                 userAccount.hasAvatar(),
                 userAccount.getAvatarUpdatedAt(),
                 userAccount.getStatus(),
@@ -50,14 +60,19 @@ public class UserAccountMapper {
         );
     }
 
-    /** Sustituye todos los datos del perfil: lo que no llega (o llega en blanco) se borra, salvo el username, que es obligatorio. */
-    public void updateEntity(UserAccount target, UpdateUserAccountDto dto) {
+    /**
+     * Sustituye todos los datos del perfil: lo que no llega (o llega en blanco) se borra, salvo el username, que es obligatorio.
+     * El grado llega ya resuelto y validado junto al curso (nulo = sin grado).
+     */
+    public void updateEntity(UserAccount target, UpdateUserAccountDto dto, Degree degree) {
         target.setUsername(dto.getUsername().trim());
         target.setFirstName(blankToNull(dto.getFirstName()));
         target.setLastName(blankToNull(dto.getLastName()));
         target.setBio(blankToNull(dto.getBio()));
         target.setUniversity(blankToNull(dto.getUniversity()));
         target.setStudies(blankToNull(dto.getStudies()));
+        target.setDegree(degree);
+        target.setCurrentYear(degree == null ? null : dto.getCurrentYear());
     }
 
     private static String blankToNull(String value) {

@@ -21,7 +21,9 @@ public interface UserAccountService {
 
     UserAccountDto getUserAccount(UserProfile profile) throws MathtexpediaUnauthorizedException;
 
-    UserAccountDto updateUserAccount(UserProfile profile, UpdateUserAccountDto dto) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException;
+    /** Sustituye el perfil. Valida el grado y el curso: 404 si el grado no existe, 400 si el curso no tiene grado o supera sus años. */
+    UserAccountDto updateUserAccount(UserProfile profile, UpdateUserAccountDto dto)
+            throws MathtexpediaConflictException, MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaInvalidException;
 
     /** Valida y normaliza la imagen y sustituye la foto de perfil actual. */
     UserAccountDto updateAvatar(UserProfile profile, MultipartFile file) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException;

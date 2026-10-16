@@ -1,10 +1,13 @@
 package mathtexpedia.es.api.service.subjectSubscription;
 
 import jakarta.persistence.PersistenceException;
+import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.subjectSubscription.SubjectSubscriptionDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.persistence.degree.Degree;
+import mathtexpedia.es.api.persistence.degree.DegreeDataService;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
 import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscription;
 import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscriptionDataService;
@@ -24,15 +27,18 @@ public class SubjectSubscriptionServiceImpl implements SubjectSubscriptionServic
 
     private final SubjectSubscriptionDataService subscriptionDataService;
     private final SubjectDataService subjectDataService;
+    private final DegreeDataService degreeDataService;
     private final UserAccountService userAccountService;
     private final SubjectMapper subjectMapper;
 
     public SubjectSubscriptionServiceImpl(SubjectSubscriptionDataService subscriptionDataService,
                                           SubjectDataService subjectDataService,
+                                          DegreeDataService degreeDataService,
                                           UserAccountService userAccountService,
                                           SubjectMapper subjectMapper) {
         this.subscriptionDataService = subscriptionDataService;
         this.subjectDataService = subjectDataService;
+        this.degreeDataService = degreeDataService;
         this.userAccountService = userAccountService;
         this.subjectMapper = subjectMapper;
     }
@@ -72,6 +78,48 @@ public class SubjectSubscriptionServiceImpl implements SubjectSubscriptionServic
 
         UserAccount account = userAccountService.getOrProvision(user);
         subscriptionDataService.remove(account.getId(), subjectId);
+    }
+
+    @Override
+    public List<SubjectSubscriptionDto> subscribeToCourse(UserProfile user, long degreeId, int year, Integer semester)
+            throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        logger.info("User {} subscribing to degree {} year {} (semester: {})", user.getId(), degreeId, year, semester);
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        validateCourse(degreeId, year, semester);
+
+        try {
+            subscriptionDataService.addAll(account.getId(), degreeId, year, semester);
+        } catch (PersistenceException e) {
+            // El grado se ha borrado justo entre la comprobación y el alta: la FK lo impide
+            throw new MathtexpediaNotFoundException("Degree not found with id: " + degreeId);
+        }
+
+        return subscriptionDataService.getByUserAndCourse(account.getId(), degreeId, year, semester)
+                .stream().map(this::toDto).toList();
+    }
+
+    @Override
+    public void unsubscribeFromCourse(UserProfile user, long degreeId, int year, Integer semester)
+            throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        logger.info("User {} unsubscribing from degree {} year {} (semester: {})", user.getId(), degreeId, year, semester);
+
+        UserAccount account = userAccountService.getOrProvision(user);
+        validateCourse(degreeId, year, semester);
+
+        subscriptionDataService.removeAll(account.getId(), degreeId, year, semester);
+    }
+
+    /** 404 si el grado no existe; 400 si el año está fuera de 1..años del grado o el cuatrimestre no es 1 ni 2. */
+    private void validateCourse(long degreeId, int year, Integer semester)
+            throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        Degree degree = degreeDataService.getById(degreeId)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Degree not found with id: " + degreeId));
+
+        if (year < 1 || year > degree.getYears())
+            throw new MathtexpediaInvalidException("Year " + year + " is out of range for degree " + degreeId + " (1.." + degree.getYears() + ")");
+        if (semester != null && semester != 1 && semester != 2)
+            throw new MathtexpediaInvalidException("Semester must be 1 or 2");
     }
 
     private SubjectSubscriptionDto toDto(SubjectSubscription subscription) {

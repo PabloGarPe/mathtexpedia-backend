@@ -19,7 +19,7 @@ public enum NotificationType {
     QUIZ_PUBLISHED(NotificationCategory.CONTENT, ResourceType.QUIZ, true, true, scopes(NotificationScope.ALL, NotificationScope.SUBSCRIBED),
             "Nuevos cuestionarios", "Cuando se publica un cuestionario"),
     SUBJECT_CREATED(NotificationCategory.CONTENT, ResourceType.SUBJECT, true, true, scopes(NotificationScope.ALL),
-            "Nuevas asignaturas", "Cuando se añade una asignatura"),
+            "Nuevas asignaturas", "Cuando se añade una asignatura de tu grado"),
     // Solo llega a los suscritos a la asignatura (lo decide la audiencia, no el alcance). Apunta a la asignatura
     SUBJECT_UNIT_CREATED(NotificationCategory.CONTENT, ResourceType.SUBJECT, true, true, Set.of(),
             "Nuevos temas", "Cuando se añade un tema a una asignatura a la que estás suscrito"),

@@ -5,7 +5,8 @@ import java.util.Set;
 /**
  * A quién va dirigida una notificación, antes de aplicar preferencias y exclusiones.
  */
-public sealed interface Audience permits Audience.AllUsers, Audience.Users, Audience.SubjectSubscribers {
+public sealed interface Audience permits Audience.AllUsers, Audience.Users, Audience.SubjectSubscribers,
+        Audience.DegreeMembersOrUnassigned {
 
     /** Todos los usuarios activos. */
     record AllUsers() implements Audience {
@@ -19,6 +20,10 @@ public sealed interface Audience permits Audience.AllUsers, Audience.Users, Audi
     record SubjectSubscribers(long subjectId) implements Audience {
     }
 
+    /** Los usuarios de alguno de estos grados y los que no tienen grado en su perfil. */
+    record DegreeMembersOrUnassigned(Set<Long> degreeIds) implements Audience {
+    }
+
     static Audience all() {
         return new AllUsers();
     }
@@ -29,5 +34,9 @@ public sealed interface Audience permits Audience.AllUsers, Audience.Users, Audi
 
     static Audience subjectSubscribers(long subjectId) {
         return new SubjectSubscribers(subjectId);
+    }
+
+    static Audience degreeMembersOrUnassigned(Set<Long> degreeIds) {
+        return new DegreeMembersOrUnassigned(degreeIds);
     }
 }

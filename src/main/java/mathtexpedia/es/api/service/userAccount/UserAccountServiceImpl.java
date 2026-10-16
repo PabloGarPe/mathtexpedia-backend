@@ -12,6 +12,8 @@ import mathtexpedia.es.api.domain.model.userAccount.UserAccountDto;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
 import mathtexpedia.es.api.domain.port.avatar.AvatarStoragePort;
 import mathtexpedia.es.api.domain.security.UserProfile;
+import mathtexpedia.es.api.persistence.degree.Degree;
+import mathtexpedia.es.api.persistence.degree.DegreeDataService;
 import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.persistence.user.UserAccountDataService;
 import org.slf4j.Logger;
@@ -37,15 +39,18 @@ public class UserAccountServiceImpl implements UserAccountService {
     private static final int MAX_SEARCH_LIMIT = 20;
 
     private final UserAccountDataService userAccountDataService;
+    private final DegreeDataService degreeDataService;
     private final UserAccountMapper userAccountMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final AvatarStoragePort avatarStoragePort;
     private final AvatarImageProcessor avatarImageProcessor;
 
-    public UserAccountServiceImpl(UserAccountDataService userAccountDataService, UserAccountMapper userAccountMapper,
+    public UserAccountServiceImpl(UserAccountDataService userAccountDataService, DegreeDataService degreeDataService,
+                                  UserAccountMapper userAccountMapper,
                                   ApplicationEventPublisher eventPublisher, AvatarStoragePort avatarStoragePort,
                                   AvatarImageProcessor avatarImageProcessor) {
         this.userAccountDataService = userAccountDataService;
+        this.degreeDataService = degreeDataService;
         this.userAccountMapper = userAccountMapper;
         this.eventPublisher = eventPublisher;
         this.avatarStoragePort = avatarStoragePort;
@@ -77,7 +82,8 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     @Override
-    public UserAccountDto updateUserAccount(UserProfile profile, UpdateUserAccountDto dto) throws MathtexpediaConflictException, MathtexpediaUnauthorizedException {
+    public UserAccountDto updateUserAccount(UserProfile profile, UpdateUserAccountDto dto)
+            throws MathtexpediaConflictException, MathtexpediaUnauthorizedException, MathtexpediaNotFoundException, MathtexpediaInvalidException {
         logger.info("Updating user account for external ID: {}", profile.getId());
 
         UserAccount toUpdate = getOrProvision(profile);
@@ -86,10 +92,12 @@ public class UserAccountServiceImpl implements UserAccountService {
         if (userAccountDataService.usernameTaken(username, toUpdate.getId()))
             throw new MathtexpediaConflictException("Username already in use: " + username);
 
+        Degree degree = resolveDegree(dto);
+
         // Sin username el perfil no cuenta como completo, aunque tenga fecha de antes de que existiera el username
         boolean wasIncomplete = toUpdate.getUsername() == null;
 
-        userAccountMapper.updateEntity(toUpdate, dto);
+        userAccountMapper.updateEntity(toUpdate, dto, degree);
 
         if (wasIncomplete || toUpdate.getProfileCompletedAt() == null) {
             toUpdate.setProfileCompletedAt(Instant.now());
@@ -188,12 +196,30 @@ public class UserAccountServiceImpl implements UserAccountService {
                     account.setBio(null);
                     account.setUniversity(null);
                     account.setStudies(null);
+                    account.setDegree(null);
+                    account.setCurrentYear(null);
                     boolean hadAvatar = account.hasAvatar();
                     account.setAvatarUpdatedAt(null);
                     userAccountDataService.update(account);
                     if (hadAvatar)
                         safeDeleteAvatar(account.getId());
                 });
+    }
+
+    /** Resuelve y valida el grado y el curso del perfil: curso sin grado es 400, grado inexistente 404 y curso fuera de sus años 400. */
+    private Degree resolveDegree(UpdateUserAccountDto dto) throws MathtexpediaNotFoundException, MathtexpediaInvalidException {
+        if (dto.getDegreeId() == null) {
+            if (dto.getCurrentYear() != null)
+                throw new MathtexpediaInvalidException("currentYear requires a degreeId");
+            return null;
+        }
+
+        Degree degree = degreeDataService.getById(dto.getDegreeId())
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Degree not found with id: " + dto.getDegreeId()));
+        if (dto.getCurrentYear() != null && dto.getCurrentYear() > degree.getYears())
+            throw new MathtexpediaInvalidException("Current year " + dto.getCurrentYear() + " is out of range for degree "
+                    + degree.getId() + " (1.." + degree.getYears() + ")");
+        return degree;
     }
 
     private static String avatarKey(long userId) {

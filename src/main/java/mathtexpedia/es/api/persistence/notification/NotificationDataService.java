@@ -20,12 +20,14 @@ public interface NotificationDataService {
      * cuando está suscrito a la asignatura de la notificación.
      *
      * @param targetUserIds destinatarios; {@code null} significa todos los usuarios activos
+     * @param degreeIds si no es {@code null} ni está vacío, solo reciben la notificación los usuarios de alguno de estos grados
+     *                  y los que no tienen grado en su perfil; {@code null} o vacío significa sin filtro
      * @param subjectId asignatura de la notificación; hace falta para evaluar el alcance SUBSCRIBED y {@code onlySubscribers}
      * @param onlySubscribers si es true, solo reciben la notificación los suscritos a {@code subjectId}
      * @return número de entregas creadas
      */
     int fanOutInApp(long notificationId, NotificationType type, Collection<Long> targetUserIds,
-                    Long subjectId, boolean onlySubscribers,
+                    Collection<Long> degreeIds, Long subjectId, boolean onlySubscribers,
                     String excludedExternalId, Collection<Long> excludedUserIds);
 
     /** Bandeja del usuario, de más reciente a más antigua. */
