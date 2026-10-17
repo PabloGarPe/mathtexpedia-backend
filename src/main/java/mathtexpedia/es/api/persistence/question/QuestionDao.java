@@ -24,7 +24,8 @@ public class QuestionDao extends GenericJPADao implements QuestionDataService{
         CriteriaQuery<Question> cq = cb.createQuery(Question.class);
         Root<Question> root = cq.from(Question.class);
 
-        cq.select(root).where(cb.equal(root.get("quiz").get("id"), quizId));
+        cq.select(root).where(cb.equal(root.get("quiz").get("id"), quizId))
+                .orderBy(cb.asc(root.get("position")), cb.asc(root.get("id")));
 
         return session.createQuery(cq).getResultList();
     }

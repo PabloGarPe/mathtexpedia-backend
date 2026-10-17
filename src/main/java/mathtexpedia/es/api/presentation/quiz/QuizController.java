@@ -11,6 +11,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.question.QuestionDto;
 import mathtexpedia.es.api.domain.model.quiz.CreateQuizDto;
+import mathtexpedia.es.api.domain.model.quiz.ImportQuestionsDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizExportableDto;
 import mathtexpedia.es.api.domain.model.quiz.QuizForAttemptDto;
@@ -227,9 +228,14 @@ public class QuizController extends GenericController {
     }
 
     @Operation(summary = "Importa un cuestionario completo desde JSON",
-            description = "El JSON no incluye asignatura ni tema; se seleccionan aparte al importar. Se importa completo, así que se publica al momento (visible) y se notifica a los usuarios. Requiere rol ADMIN")
+            description = "El JSON no incluye asignatura ni tema; se seleccionan aparte al importar. Con publish = true (por defecto) "
+                    + "se publica al momento (visible) y se notifica a los usuarios. Con publish = false se queda OCULTO, como al crearlo "
+                    + "con POST /quiz/create, sin notificar a nadie; se publica después con PATCH /quiz/{id}/visibility. "
+                    + "Se ignoran las position del JSON: las preguntas se numeran 1..n en el orden de la lista, y las opciones de cada pregunta, 1..m. "
+                    + "Cada pregunta MULTIPLE_CHOICE debe tener al menos 2 opciones y cada TRUE_FALSE exactamente 2, en ambos casos con exactamente una correcta. "
+                    + "Una explanation vacía se guarda como null. Requiere rol ADMIN")
     @ApiResponse(responseCode = "201", description = "Cuestionario importado correctamente")
-    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos (p. ej. una pregunta sin exactamente una opción correcta o una descripción de más de 500 caracteres)")
     @ApiResponse(responseCode = "401", description = "No autorizado")
     @ApiResponse(responseCode = "404", description = "No existe ninguna asignatura o unidad de asignatura con el ID proporcionado")
     @ApiResponse(responseCode = "409", description = "Conflicto al crear el cuestionario")
@@ -241,14 +247,41 @@ public class QuizController extends GenericController {
             @RequestParam long subjectId,
             @Parameter(description = "ID del tema al que se asocia el cuestionario importado")
             @RequestParam(required = false) Long subjectUnitId,
+            @Parameter(description = "true (por defecto) para publicarlo al momento y notificar a los usuarios; false para dejarlo oculto y publicarlo después con PATCH /quiz/{id}/visibility")
+            @RequestParam(defaultValue = "true") boolean publish,
             @AuthenticationPrincipal UserProfile user
     ) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
-        logger.debug("Called importQuiz with dto: {}, subjectId: {} and subjectUnitId: {}", dto, subjectId, subjectUnitId);
+        logger.debug("Called importQuiz with dto: {}, subjectId: {}, subjectUnitId: {} and publish: {}", dto, subjectId, subjectUnitId, publish);
 
         checkIfAdmin(user);
 
-        QuizDto importedQuiz = quizService.importQuiz(dto, subjectId, subjectUnitId);
+        QuizDto importedQuiz = quizService.importQuiz(dto, subjectId, subjectUnitId, publish);
         return ResponseEntity.status(HttpStatus.CREATED).body(importedQuiz);
+    }
+
+    @Operation(summary = "Añade preguntas desde JSON al final de un cuestionario existente",
+            description = "Usa el mismo formato de pregunta que el export/import de cuestionarios. Se añaden todas o ninguna. "
+                    + "Se ignoran las position del JSON: las preguntas nuevas van a continuación de la última (max(position) + 1 en adelante, "
+                    + "o 1..n si el cuestionario está vacío) en el orden de la lista, y las opciones de cada pregunta se numeran 1..m. "
+                    + "Se aplica la misma validación que al importar un cuestionario. No cambia la visibilidad del cuestionario ni notifica a nadie. Requiere rol ADMIN")
+    @ApiResponse(responseCode = "201", description = "Preguntas creadas, en el orden de la lista")
+    @ApiResponse(responseCode = "400", description = "Datos de entrada inválidos (p. ej. una pregunta sin exactamente una opción correcta)")
+    @ApiResponse(responseCode = "401", description = "No autorizado")
+    @ApiResponse(responseCode = "404", description = "No existe ningún cuestionario con el ID proporcionado")
+    @PostMapping("/{id}/questions/import")
+    public ResponseEntity<List<QuestionDto>> importQuestions(
+            @Parameter(description = "ID del cuestionario al que se añaden las preguntas", required = true)
+            @PathVariable long id,
+            @Parameter(description = "Preguntas a añadir", required = true)
+            @RequestBody @Valid ImportQuestionsDto dto,
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException, MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+        logger.debug("Called importQuestions with id: {} and dto: {}", id, dto);
+
+        checkIfAdmin(user);
+
+        List<QuestionDto> createdQuestions = quizService.importQuestions(id, dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdQuestions);
     }
 
     @Operation(summary = "Envía un intento de cuestionario para su evaluación", description = "Requiere autenticación, pero no requiere rol ADMIN")
