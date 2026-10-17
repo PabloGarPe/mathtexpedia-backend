@@ -4,6 +4,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaConflictException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.question.QuestionDto;
 import mathtexpedia.es.api.domain.model.quiz.*;
 import mathtexpedia.es.api.domain.security.UserProfile;
 
@@ -52,5 +53,15 @@ public interface QuizService {
 
     QuizExportableDto exportQuiz(long quizId) throws MathtexpediaNotFoundException;
 
-    QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
+    /**
+     * Importa un cuestionario completo. Con {@code publish} se publica al momento (y notifica); sin él se queda oculto,
+     * como al crearlo. Se ignoran las posiciones del JSON: se numera todo en el orden de las listas.
+     */
+    QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId, boolean publish) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
+
+    /**
+     * Añade preguntas (con sus opciones) al final de un cuestionario existente, todas o ninguna. No cambia su
+     * visibilidad ni notifica. Devuelve las preguntas creadas, en orden.
+     */
+    List<QuestionDto> importQuestions(long quizId, ImportQuestionsDto dto) throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException;
 }
