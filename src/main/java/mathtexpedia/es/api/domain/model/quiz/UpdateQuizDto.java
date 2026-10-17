@@ -3,6 +3,7 @@ package mathtexpedia.es.api.domain.model.quiz;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -16,6 +17,7 @@ public class UpdateQuizDto {
     @Schema(description = "Descripción del cuestionario",
             example = "Cuestionario sobre operaciones con matrices",
             nullable = true)
+    @Size(max = 500)
     private String description;
 
     @Schema(description = "Dificultad del cuestionario", example = "EASY|MEDIUM|HARD")

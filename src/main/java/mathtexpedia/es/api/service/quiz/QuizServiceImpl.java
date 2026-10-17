@@ -307,9 +307,11 @@ public class QuizServiceImpl implements QuizService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId)
+    public QuizDto importQuiz(QuizExportableDto dto, long subjectId, Long subjectUnitId, boolean publish)
             throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
-        logger.info("Importing quiz with name: {}", dto.getName());
+        logger.info("Importing quiz with name: {} (publish: {})", dto.getName(), publish);
+
+        validateImportedQuestions(dto.getQuestions());
 
         CreateQuizDto createQuizDto = new CreateQuizDto();
         createQuizDto.setName(dto.getName());
@@ -320,35 +322,97 @@ public class QuizServiceImpl implements QuizService {
 
         QuizDto createdQuiz = create(createQuizDto);
 
-        for (QuestionExportableDto questionDto : dto.getQuestions()) {
-            CreateQuestionDto createQuestionDto = new CreateQuestionDto();
-            createQuestionDto.setText(questionDto.getText());
-            createQuestionDto.setType(questionDto.getType());
-            createQuestionDto.setPosition(questionDto.getPosition());
-            createQuestionDto.setExplanation(questionDto.getExplanation());
-            createQuestionDto.setQuizId(createdQuiz.getId());
+        createImportedQuestions(createdQuiz.getId(), dto.getQuestions(), 1);
 
-            QuestionDto createdQuestion = questionService.create(createQuestionDto);
-
-            for (OptionExportableDto optionDto : questionDto.getOptions()) {
-                CreateOptionDto createOptionDto = new CreateOptionDto();
-                createOptionDto.setText(optionDto.getText());
-                createOptionDto.setCorrect(optionDto.isCorrect());
-                createOptionDto.setPosition(optionDto.getPosition());
-                createOptionDto.setQuestionId(createdQuestion.getId());
-
-                optionService.create(createOptionDto);
-            }
-        }
-
-        // Se importa completo, así que se publica al momento (si trae preguntas; uno vacío se queda oculto, como al crearlo)
-        if (!dto.getQuestions().isEmpty()) {
+        // Si se pide, se publica al momento (si trae preguntas; uno vacío se queda oculto, como al crearlo). Si no, se
+        // queda oculto como cualquier cuestionario recién creado y se publica después con setVisibility
+        if (publish && !dto.getQuestions().isEmpty()) {
             Quiz quiz = quizDataService.getById(createdQuiz.getId())
                     .orElseThrow(() -> new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + createdQuiz.getId()));
             return quizMapper.toDto(publish(quiz), 0);
         }
 
         return createdQuiz;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public List<QuestionDto> importQuestions(long quizId, ImportQuestionsDto dto)
+            throws MathtexpediaInvalidException, MathtexpediaNotFoundException, MathtexpediaConflictException {
+        logger.info("Importing {} questions into quiz with id: {}", dto.getQuestions().size(), quizId);
+
+        if (quizDataService.getById(quizId).isEmpty())
+            throw new MathtexpediaNotFoundException(QUIZ_NOT_FOUND_MESSAGE + quizId);
+
+        validateImportedQuestions(dto.getQuestions());
+
+        int nextPosition = questionDataService.getAllQuestionsByQuizId(quizId).stream()
+                .mapToInt(Question::getPosition)
+                .max()
+                .orElse(0) + 1;
+
+        return createImportedQuestions(quizId, dto.getQuestions(), nextPosition);
+    }
+
+    /**
+     * Comprueba que las preguntas importadas son coherentes antes de escribir nada. Los mensajes indican la pregunta
+     * en base 1, tal y como la ve quien ha escrito el JSON.
+     */
+    private void validateImportedQuestions(List<QuestionExportableDto> questions) throws MathtexpediaInvalidException {
+        for (int i = 0; i < questions.size(); i++) {
+            QuestionExportableDto question = questions.get(i);
+            List<OptionExportableDto> options = question.getOptions();
+            String prefix = "Pregunta " + (i + 1) + ": ";
+
+            if (question.getType() == QuestionType.MULTIPLE_CHOICE && options.size() < 2)
+                throw new MathtexpediaInvalidException(prefix + "una pregunta de opción múltiple debe tener al menos 2 opciones");
+
+            if (question.getType() == QuestionType.TRUE_FALSE && options.size() != 2)
+                throw new MathtexpediaInvalidException(prefix + "una pregunta de verdadero/falso debe tener exactamente 2 opciones");
+
+            if (options.stream().filter(OptionExportableDto::isCorrect).count() != 1)
+                throw new MathtexpediaInvalidException(prefix + "debe tener exactamente una opción correcta");
+        }
+    }
+
+    /**
+     * Crea las preguntas y sus opciones ignorando las posiciones del JSON: las preguntas se numeran desde
+     * {@code firstPosition} en el orden de la lista y las opciones de cada una, 1..m. Devuelve las preguntas creadas.
+     */
+    private List<QuestionDto> createImportedQuestions(long quizId, List<QuestionExportableDto> questions, int firstPosition)
+            throws MathtexpediaNotFoundException, MathtexpediaConflictException {
+        List<QuestionDto> created = new ArrayList<>();
+        int position = firstPosition;
+
+        for (QuestionExportableDto questionDto : questions) {
+            CreateQuestionDto createQuestionDto = new CreateQuestionDto();
+            createQuestionDto.setText(questionDto.getText());
+            createQuestionDto.setType(questionDto.getType());
+            createQuestionDto.setPosition(position++);
+            createQuestionDto.setExplanation(blankToNull(questionDto.getExplanation()));
+            createQuestionDto.setQuizId(quizId);
+
+            QuestionDto createdQuestion = questionService.create(createQuestionDto);
+
+            int optionPosition = 1;
+            for (OptionExportableDto optionDto : questionDto.getOptions()) {
+                CreateOptionDto createOptionDto = new CreateOptionDto();
+                createOptionDto.setText(optionDto.getText());
+                createOptionDto.setCorrect(optionDto.isCorrect());
+                createOptionDto.setPosition(optionPosition++);
+                createOptionDto.setQuestionId(createdQuestion.getId());
+
+                optionService.create(createOptionDto);
+            }
+
+            created.add(createdQuestion);
+        }
+
+        return created;
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     /**

@@ -25,7 +25,8 @@ public class OptionDao extends GenericJPADao implements OptionDataService{
         CriteriaQuery<Option> cq = cb.createQuery(Option.class);
         Root<Option> root = cq.from(Option.class);
 
-        cq.select(root).where(cb.equal(root.get("question").get("id"), questionId));
+        cq.select(root).where(cb.equal(root.get("question").get("id"), questionId))
+                .orderBy(cb.asc(root.get("position")), cb.asc(root.get("id")));
 
         return session.createQuery(cq).getResultList();
     }
