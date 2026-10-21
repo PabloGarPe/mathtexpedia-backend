@@ -8,6 +8,7 @@ import mathtexpedia.es.api.domain.model.degree.CreateDegreeDto;
 import mathtexpedia.es.api.domain.model.degree.CurriculumDto;
 import mathtexpedia.es.api.domain.model.degree.DegreeDto;
 import mathtexpedia.es.api.domain.model.degree.UpdateDegreeDto;
+import mathtexpedia.es.api.persistence.courseSubscription.CourseSubscriptionDataService;
 import mathtexpedia.es.api.persistence.degree.Degree;
 import mathtexpedia.es.api.persistence.degree.DegreeDataService;
 import mathtexpedia.es.api.persistence.degreeSubject.DegreeSubjectDataService;
@@ -27,12 +28,14 @@ public class DegreeServiceImpl implements DegreeService {
 
     private final DegreeDataService degreeDataService;
     private final DegreeSubjectDataService degreeSubjectDataService;
+    private final CourseSubscriptionDataService courseSubscriptionDataService;
     private final DegreeMapper degreeMapper;
 
     public DegreeServiceImpl(DegreeDataService degreeDataService, DegreeSubjectDataService degreeSubjectDataService,
-                             DegreeMapper degreeMapper) {
+                             CourseSubscriptionDataService courseSubscriptionDataService, DegreeMapper degreeMapper) {
         this.degreeDataService = degreeDataService;
         this.degreeSubjectDataService = degreeSubjectDataService;
+        this.courseSubscriptionDataService = courseSubscriptionDataService;
         this.degreeMapper = degreeMapper;
     }
 
@@ -106,6 +109,8 @@ public class DegreeServiceImpl implements DegreeService {
                         + " years because it has subjects placed in year " + maxYear.get());
             // Los usuarios que estaban en un curso que desaparece se quedan sin curso (mantienen el grado)
             degreeDataService.clearUsersCurrentYearAbove(id, dto.getYears());
+            // Y las suscripciones a esos cursos se borran: ya no hay donde colocar asignaturas nuevas
+            courseSubscriptionDataService.removeAboveYear(id, dto.getYears());
         }
 
         degreeMapper.updateEntity(toUpdate, dto);

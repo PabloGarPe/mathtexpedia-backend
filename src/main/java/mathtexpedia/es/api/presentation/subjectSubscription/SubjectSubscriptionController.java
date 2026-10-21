@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.subjectSubscription.CourseSubscriptionDto;
 import mathtexpedia.es.api.domain.model.subjectSubscription.SubjectSubscriptionDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -42,6 +43,24 @@ public class SubjectSubscriptionController extends GenericController {
         logger.debug("Called getMySubscriptions for user: {}", user);
 
         return ResponseEntity.ok(subscriptionService.getMySubscriptions(user));
+    }
+
+    @Operation(summary = "Lista los cursos a los que estoy suscrito",
+            description = "Cursos (grado, año y cuatrimestre) a los que me he suscrito con PUT /degree/{degreeId}/year/{year}: las "
+                    + "asignaturas que se coloquen después en ellos se me suscriben solas. semester nulo es el año entero. Por grado y "
+                    + "año hay o una entrada del año entero o entradas para el cuatrimestre 1 y/o 2. Ordenados por nombre del grado, "
+                    + "año y cuatrimestre (el año entero primero). Lista vacía si no hay ninguna")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Suscripciones a curso del usuario (puede estar vacía)"),
+            @ApiResponse(responseCode = "401", description = "No autenticado")
+    })
+    @GetMapping("/courses")
+    public ResponseEntity<List<CourseSubscriptionDto>> getMyCourseSubscriptions(
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
+        logger.debug("Called getMyCourseSubscriptions for user: {}", user);
+
+        return ResponseEntity.ok(subscriptionService.getMyCourseSubscriptions(user));
     }
 
     @Operation(summary = "Me suscribo a una asignatura",
@@ -81,9 +100,11 @@ public class SubjectSubscriptionController extends GenericController {
     }
 
     @Operation(summary = "Me suscribo a un curso entero",
-            description = "Suscribe a todas las asignaturas colocadas ahora en ese grado y año (y cuatrimestre, si se indica). "
-                    + "Es una foto fija: las asignaturas que se coloquen después no se suscriben solas. Idempotente: las que ya "
-                    + "estaban suscritas se conservan. Devuelve las suscripciones a las asignaturas de ese curso, ordenadas por nombre")
+            description = "Suscribe a todas las asignaturas colocadas ahora en ese grado y año (y cuatrimestre, si se indica) y "
+                    + "recuerda la suscripción al curso: las asignaturas que se coloquen después en él se suscriben solas (las anuales, "
+                    + "solo si la suscripción es al año entero). Suscribirse al año entero sustituye a las suscripciones a sus "
+                    + "cuatrimestres. Idempotente: las que ya estaban suscritas se conservan. Devuelve las suscripciones a las "
+                    + "asignaturas de ese curso, ordenadas por nombre")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Suscripciones del usuario a las asignaturas del curso (vacía si el curso no tiene asignaturas)"),
             @ApiResponse(responseCode = "400", description = "El año está fuera de 1..años del grado o el cuatrimestre no es 1 ni 2"),
@@ -107,7 +128,9 @@ public class SubjectSubscriptionController extends GenericController {
 
     @Operation(summary = "Me doy de baja de un curso entero",
             description = "Da de baja de todas las asignaturas colocadas ahora en ese grado y año (y cuatrimestre, si se indica), "
-                    + "también de las que estén colocadas además en otro curso al que el usuario siga suscrito. "
+                    + "también de las que estén colocadas además en otro curso al que el usuario siga suscrito, y olvida la suscripción "
+                    + "al curso. Darse de baja del año entero borra también las de sus cuatrimestres; darse de baja de un cuatrimestre "
+                    + "estando suscrito al año entero deja la suscripción solo al otro cuatrimestre. "
                     + "Idempotente: devuelve 204 también si no había ninguna suscripción")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "El usuario ya no está suscrito a las asignaturas del curso"),
