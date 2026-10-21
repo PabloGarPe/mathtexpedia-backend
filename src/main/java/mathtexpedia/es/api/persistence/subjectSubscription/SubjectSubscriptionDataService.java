@@ -26,11 +26,19 @@ public interface SubjectSubscriptionDataService {
 
     /**
      * Suscribe al usuario a todas las asignaturas colocadas ahora en ese grado y año (y cuatrimestre, si se indica), sin fallar
-     * por las que ya tenía. Es una foto fija: las que se coloquen después no se suscriben solas.
+     * por las que ya tenía. Es una foto fija: las que se coloquen después las suscribe {@link #addForCourseSubscribers}.
      *
      * @return número de suscripciones nuevas
      */
     int addAll(long userAccountId, long degreeId, int year, Integer semester);
+
+    /**
+     * Suscribe a la asignatura a los usuarios activos suscritos al curso en el que se acaba de colocar (ver {@code CourseSubscription}),
+     * sin fallar por los que ya la tenían. Con {@code semester} nulo (asignatura anual) solo cuentan los suscritos al año entero.
+     *
+     * @return número de suscripciones nuevas
+     */
+    int addForCourseSubscribers(long subjectId, long degreeId, int year, Integer semester);
 
     /** Da de baja al usuario de las asignaturas colocadas ahora en ese curso, estén o no colocadas también en otro. @return las borradas */
     int removeAll(long userAccountId, long degreeId, int year, Integer semester);

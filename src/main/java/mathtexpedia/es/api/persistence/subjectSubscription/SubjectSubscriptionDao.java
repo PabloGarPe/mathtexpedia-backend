@@ -116,6 +116,31 @@ public class SubjectSubscriptionDao extends GenericJPADao implements SubjectSubs
 
     @Override
     @Transactional
+    public int addForCourseSubscribers(long subjectId, long degreeId, int year, Integer semester) {
+        logger.trace("Subscribing subscribers of degree {} year {} (semester: {}) to subject {}", degreeId, year, semester, subjectId);
+
+        StringBuilder sql = new StringBuilder("""
+                INSERT INTO subject_subscription (user_id, subject_id, created_at)
+                SELECT DISTINCT cs.user_id, :subjectId, :now
+                FROM course_subscription cs JOIN user_account u ON u.id = cs.user_id
+                WHERE cs.degree_id = :degreeId AND cs.course_year = :year AND u.status = 'ACTIVE'
+                """);
+        sql.append(semester != null ? "  AND (cs.semester IS NULL OR cs.semester = :semester)\n" : "  AND cs.semester IS NULL\n");
+        sql.append("ON CONFLICT (user_id, subject_id) DO NOTHING");
+
+        Query query = em.createNativeQuery(sql.toString())
+                .setParameter(SUBJECT_PARAM, subjectId)
+                .setParameter("now", Instant.now())
+                .setParameter(DEGREE_PARAM, degreeId)
+                .setParameter(YEAR_PARAM, year);
+        if (semester != null)
+            query.setParameter(SEMESTER_PARAM, semester);
+
+        return query.executeUpdate();
+    }
+
+    @Override
+    @Transactional
     public int removeAll(long userAccountId, long degreeId, int year, Integer semester) {
         logger.trace("Unsubscribing user {} from degree {} year {} (semester: {})", userAccountId, degreeId, year, semester);
 

@@ -21,6 +21,7 @@ import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.quiz.QuizDataService;
 import mathtexpedia.es.api.persistence.subject.Subject;
 import mathtexpedia.es.api.persistence.subject.SubjectDataService;
+import mathtexpedia.es.api.persistence.subjectSubscription.SubjectSubscriptionDataService;
 import mathtexpedia.es.api.persistence.subjectUnit.SubjectUnitDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class SubjectServiceImpl implements SubjectService{
     private final QuizDataService quizDataService;
     private final DegreeDataService degreeDataService;
     private final DegreeSubjectDataService degreeSubjectDataService;
+    private final SubjectSubscriptionDataService subscriptionDataService;
     private final SubjectMapper subjectMapper;
     private final ApplicationEventPublisher eventPublisher;
     private final CurrentUser currentUser;
@@ -60,6 +62,7 @@ public class SubjectServiceImpl implements SubjectService{
             QuizDataService quizDataService,
             DegreeDataService degreeDataService,
             DegreeSubjectDataService degreeSubjectDataService,
+            SubjectSubscriptionDataService subscriptionDataService,
             SubjectMapper subjectMapper,
             ApplicationEventPublisher eventPublisher,
             CurrentUser currentUser
@@ -70,6 +73,7 @@ public class SubjectServiceImpl implements SubjectService{
         this.quizDataService = quizDataService;
         this.degreeDataService = degreeDataService;
         this.degreeSubjectDataService = degreeSubjectDataService;
+        this.subscriptionDataService = subscriptionDataService;
         this.subjectMapper = subjectMapper;
         this.eventPublisher = eventPublisher;
         this.currentUser = currentUser;
@@ -114,8 +118,10 @@ public class SubjectServiceImpl implements SubjectService{
         Subject subject = subjectMapper.toEntity(dto);
         try {
             Subject created = subjectDataService.create(subject);
-            if (!placements.isEmpty())
+            if (!placements.isEmpty()) {
                 degreeSubjectDataService.replaceForSubject(created.getId(), placements);
+                subscribeCourseSubscribers(created.getId(), placements, List.of());
+            }
             // El listener de notificaciones es AFTER_COMMIT: cuando corra, las colocaciones ya estarán en base de datos
             eventPublisher.publishEvent(new SubjectCreatedEvent(created.getId(), currentUser.externalIdOrNull()));
             return subjectMapper.toDetailDto(created, placements);
@@ -159,8 +165,11 @@ public class SubjectServiceImpl implements SubjectService{
         subjectMapper.updateEntity(toUpdate, dto);
         try {
             Subject updated = subjectDataService.update(toUpdate);
-            if (newPlacements != null)
+            if (newPlacements != null) {
+                List<DegreeSubject> oldPlacements = degreeSubjectDataService.getBySubjectIds(List.of(id));
+                subscribeCourseSubscribers(id, newPlacements, oldPlacements);
                 degreeSubjectDataService.replaceForSubject(id, newPlacements);
+            }
             List<DegreeSubject> placements = newPlacements != null ? newPlacements : degreeSubjectDataService.getBySubjectIds(List.of(id));
             return subjectMapper.toDetailDto(updated, placements);
         } catch (PersistenceException | DataIntegrityViolationException e) {
@@ -181,6 +190,27 @@ public class SubjectServiceImpl implements SubjectService{
 
         if (filter.degreeId() != null && degreeDataService.getById(filter.degreeId()).isEmpty())
             throw new MathtexpediaNotFoundException("Degree not found with id: " + filter.degreeId());
+    }
+
+    /**
+     * Suscribe a la asignatura a los usuarios suscritos a los cursos en los que pasa a estar colocada. Solo cuentan las colocaciones
+     * nuevas o que cambian de año o cuatrimestre: las que ya estaban no vuelven a suscribir a quien se dio de baja de la asignatura.
+     */
+    private void subscribeCourseSubscribers(long subjectId, List<DegreeSubject> newPlacements, List<DegreeSubject> oldPlacements) {
+        Set<PlacementKey> previous = new HashSet<>();
+        oldPlacements.forEach(placement -> previous.add(PlacementKey.of(placement)));
+
+        for (DegreeSubject placement : newPlacements) {
+            PlacementKey key = PlacementKey.of(placement);
+            if (!previous.contains(key))
+                subscriptionDataService.addForCourseSubscribers(subjectId, key.degreeId(), key.year(), key.semester());
+        }
+    }
+
+    private record PlacementKey(long degreeId, int year, Integer semester) {
+        static PlacementKey of(DegreeSubject placement) {
+            return new PlacementKey(placement.getDegree().getId(), placement.getYear(), placement.getSemester());
+        }
     }
 
     /**
