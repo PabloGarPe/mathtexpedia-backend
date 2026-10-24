@@ -128,6 +128,13 @@ public class GenericController {
         return new ResponseEntity<>(new HttpHeaders(), HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(MathtexpediaTooManyRequestsException.class)
+    protected ResponseEntity<Object> handleMathtexpediaTooManyRequestsException(MathtexpediaTooManyRequestsException e) {
+        logErrorAndHttpResponse(e, "429", Level.WARN);
+
+        return new ResponseEntity<>(new HttpHeaders(), HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     protected ResponseEntity<Object> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         logErrorAndHttpResponse(e, "400", Level.ERROR);

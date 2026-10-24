@@ -25,6 +25,16 @@ public enum NotificationType {
             "Nuevos temas", "Cuando se añade un tema a una asignatura a la que estás suscrito"),
     PDF_AUTHOR_ADDED(NotificationCategory.PERSONAL, ResourceType.PDF, true, true, Set.of(),
             "Autoría de apuntes", "Cuando te añaden como autor de un apunte"),
+    COMMENT_REPLY(NotificationCategory.PERSONAL, ResourceType.PDF, true, true, Set.of(),
+            "Respuestas a tus comentarios", "Cuando alguien responde a un comentario tuyo"),
+    COMMENT_ON_PDF(NotificationCategory.PERSONAL, ResourceType.PDF, true, true, Set.of(),
+            "Comentarios en tus apuntes", "Cuando alguien comenta en un apunte del que eres autor"),
+    // No configurable: es el único aviso de que un comentario propio no se ha publicado
+    COMMENT_REJECTED(NotificationCategory.PERSONAL, ResourceType.PDF, false, true, Set.of(),
+            "Comentarios rechazados", "Cuando se rechaza un comentario tuyo"),
+    // Solo se envía a los administradores
+    COMMENT_REVIEW_PENDING(NotificationCategory.SYSTEM, ResourceType.NONE, false, true, Set.of(),
+            "Comentarios por revisar", "Comentarios que esperan la decisión de un administrador"),
     WELCOME(NotificationCategory.SYSTEM, ResourceType.NONE, false, true, Set.of(),
             "Bienvenida", "Mensaje de bienvenida"),
     ANNOUNCEMENT(NotificationCategory.SYSTEM, ResourceType.NONE, false, true, Set.of(),

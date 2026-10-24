@@ -5,6 +5,7 @@ import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Root;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
+import mathtexpedia.es.api.domain.security.UserRole;
 import mathtexpedia.es.api.persistence.GenericJPADao;
 import org.hibernate.Session;
 import org.springframework.stereotype.Repository;
@@ -59,6 +60,21 @@ public class UserAccountDao extends GenericJPADao implements UserAccountDataServ
         logger.trace("Finding user account by id {}", id);
 
         return Optional.ofNullable(em.find(UserAccount.class, id));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> getAdminIds() {
+        logger.trace("Getting admin user ids");
+
+        Session session = em.unwrap(Session.class);
+        CriteriaBuilder cb = session.getCriteriaBuilder();
+
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<UserAccount> root = cq.from(UserAccount.class);
+        cq.select(root.get("id")).where(cb.equal(root.get("role"), UserRole.ADMIN), cb.equal(root.get("status"), UserStatus.ACTIVE));
+
+        return session.createQuery(cq).getResultList();
     }
 
     @Override

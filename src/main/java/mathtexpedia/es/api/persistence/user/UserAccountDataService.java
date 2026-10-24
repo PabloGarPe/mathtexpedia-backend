@@ -19,6 +19,8 @@ public interface UserAccountDataService {
     /** Si otro usuario (distinto de {@code excludingId}) ya tiene ese username, sin distinguir mayúsculas. */
     boolean usernameTaken(String username, long excludingId);
 
+    List<Long> getAdminIds();
+
     /**
      * Usuarios ACTIVE cuyo username, nombre, apellidos o email contiene el término (sin distinguir mayúsculas ni tildes),
      * ordenados por username (o email si no tienen). Requiere la extensión 'unaccent' de Postgres.

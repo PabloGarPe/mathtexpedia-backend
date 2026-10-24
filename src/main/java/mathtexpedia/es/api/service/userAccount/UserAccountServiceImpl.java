@@ -237,6 +237,7 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private UserAccount touch(UserAccount account, UserProfile profile) {
         account.setEmail(profile.getEmail());
+        account.setRole(profile.getRole());
         account.setLastSeenAt(Instant.now());
         return userAccountDataService.update(account);
     }
@@ -245,6 +246,7 @@ public class UserAccountServiceImpl implements UserAccountService {
         UserAccount account = new UserAccount();
         account.setExternalId(profile.getId());
         account.setEmail(profile.getEmail());
+        account.setRole(profile.getRole());
         account.setCreatedAt(Instant.now());
         account.setLastSeenAt(Instant.now());
 
