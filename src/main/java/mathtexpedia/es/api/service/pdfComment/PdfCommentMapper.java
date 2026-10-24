@@ -26,8 +26,9 @@ public class PdfCommentMapper {
      * Para el listado público. Una raíz que ya no está publicada se devuelve como "no disponible", sin texto ni autor.
      *
      * @param replyCount respuestas publicadas (solo para raíces; nulo en respuestas)
+     * @param likeCount  likes del comentario
      */
-    public CommentDto toPublicDto(PdfComment comment, Set<Long> pdfAuthorIds, Long replyCount) {
+    public CommentDto toPublicDto(PdfComment comment, Set<Long> pdfAuthorIds, Long replyCount, long likeCount) {
         if (comment.getStatus() != CommentStatus.PUBLISHED) {
             return CommentDto.builder()
                     .id(comment.getId())
@@ -38,12 +39,14 @@ public class PdfCommentMapper {
                     .publishedAt(comment.getPublishedAt())
                     .build();
         }
-        return base(comment, pdfAuthorIds).status(CommentStatus.PUBLISHED).available(true).replyCount(replyCount).build();
+        return base(comment, pdfAuthorIds).status(CommentStatus.PUBLISHED).available(true).replyCount(replyCount)
+                .likeCount(likeCount).build();
     }
 
     /** Para el propio autor: incluye el estado y el motivo del rechazo. */
-    public CommentDto toOwnDto(PdfComment comment, Set<Long> pdfAuthorIds) {
+    public CommentDto toOwnDto(PdfComment comment, Set<Long> pdfAuthorIds, long likeCount) {
         return base(comment, pdfAuthorIds)
+                .likeCount(likeCount)
                 .status(comment.getStatus())
                 .moderationCategory(comment.getModerationCategory())
                 .available(true)

@@ -63,9 +63,6 @@ public class PdfComment {
     @Column(name = "moderation_attempts", nullable = false)
     private int moderationAttempts = 0;
 
-    @Column(name = "likes", nullable = false)
-    private int likes = 0;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 

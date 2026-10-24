@@ -48,6 +48,9 @@ public class CommentDto {
     @Schema(description = "Respuestas publicadas. Solo en las raíces de los listados públicos", nullable = true)
     private Long replyCount;
 
+    @Schema(description = "Likes del comentario. 0 si 'available' es false. Qué comentarios le gustan al usuario: GET /me/comment-likes")
+    private long likeCount;
+
     private Instant createdAt;
 
     @Schema(description = "Cuándo se aprobó; es el que ordena los listados. Nulo si todavía no se ha publicado", nullable = true)

@@ -16,6 +16,7 @@ import mathtexpedia.es.api.persistence.pdf.PDF;
 import mathtexpedia.es.api.persistence.pdf.PDFDataService;
 import mathtexpedia.es.api.persistence.pdfComment.PdfComment;
 import mathtexpedia.es.api.persistence.pdfComment.PdfCommentDataService;
+import mathtexpedia.es.api.persistence.pdfCommentLike.PdfCommentLikeDataService;
 import mathtexpedia.es.api.persistence.user.UserAccount;
 import mathtexpedia.es.api.service.userAccount.UserAccountService;
 import org.slf4j.Logger;
@@ -38,6 +39,7 @@ public class PdfCommentServiceImpl implements PdfCommentService {
     private static final int MAX_PAGE_SIZE = 50;
 
     private final PdfCommentDataService pdfCommentDataService;
+    private final PdfCommentLikeDataService likeDataService;
     private final PDFDataService pdfDataService;
     private final UserAccountService userAccountService;
     private final CommentContentValidator contentValidator;
@@ -45,12 +47,14 @@ public class PdfCommentServiceImpl implements PdfCommentService {
     private final int maxPendingPerUser;
 
     public PdfCommentServiceImpl(PdfCommentDataService pdfCommentDataService,
+                                 PdfCommentLikeDataService likeDataService,
                                  PDFDataService pdfDataService,
                                  UserAccountService userAccountService,
                                  CommentContentValidator contentValidator,
                                  PdfCommentMapper mapper,
                                  @Value("${comments.max-pending-per-user}") int maxPendingPerUser) {
         this.pdfCommentDataService = pdfCommentDataService;
+        this.likeDataService = likeDataService;
         this.pdfDataService = pdfDataService;
         this.userAccountService = userAccountService;
         this.contentValidator = contentValidator;
@@ -86,7 +90,7 @@ public class PdfCommentServiceImpl implements PdfCommentService {
             comment.setReplyTo(replyTo);
         }
 
-        return mapper.toOwnDto(pdfCommentDataService.create(comment), authorIds(pdf));
+        return mapper.toOwnDto(pdfCommentDataService.create(comment), authorIds(pdf), 0L);
     }
 
     @Override
@@ -101,10 +105,12 @@ public class PdfCommentServiceImpl implements PdfCommentService {
         List<PdfComment> roots = pdfCommentDataService.findVisibleRoots(pdfId, offset, safeSize);
         long total = pdfCommentDataService.countVisibleRoots(pdfId);
         Map<Long, Long> replyCounts = pdfCommentDataService.countPublishedReplies(roots.stream().map(PdfComment::getId).toList());
+        Map<Long, Long> likeCounts = likeDataService.countByComment(roots.stream().map(PdfComment::getId).toList());
         Set<Long> pdfAuthorIds = authorIds(pdf);
 
         List<CommentDto> items = roots.stream()
-                .map(root -> mapper.toPublicDto(root, pdfAuthorIds, replyCounts.getOrDefault(root.getId(), 0L)))
+                .map(root -> mapper.toPublicDto(root, pdfAuthorIds, replyCounts.getOrDefault(root.getId(), 0L),
+                        likeCounts.getOrDefault(root.getId(), 0L)))
                 .toList();
 
         return new CommentPageDto(items, safePage, safeSize, total, offset + items.size() < total);
@@ -124,9 +130,12 @@ public class PdfCommentServiceImpl implements PdfCommentService {
 
         List<PdfComment> replies = pdfCommentDataService.findPublishedReplies(rootId, offset, safeSize);
         long total = pdfCommentDataService.countPublishedReplies(List.of(rootId)).getOrDefault(rootId, 0L);
+        Map<Long, Long> likeCounts = likeDataService.countByComment(replies.stream().map(PdfComment::getId).toList());
         Set<Long> pdfAuthorIds = authorIds(root.getPdf());
 
-        List<CommentDto> items = replies.stream().map(reply -> mapper.toPublicDto(reply, pdfAuthorIds, null)).toList();
+        List<CommentDto> items = replies.stream()
+                .map(reply -> mapper.toPublicDto(reply, pdfAuthorIds, null, likeCounts.getOrDefault(reply.getId(), 0L)))
+                .toList();
 
         return new CommentPageDto(items, safePage, safeSize, total, offset + items.size() < total);
     }
@@ -140,8 +149,11 @@ public class PdfCommentServiceImpl implements PdfCommentService {
         PDF pdf = findPdfOrThrow(pdfId);
         Set<Long> pdfAuthorIds = authorIds(pdf);
 
-        return pdfCommentDataService.findByUserAndPdf(account.getId(), pdfId).stream()
-                .map(comment -> mapper.toOwnDto(comment, pdfAuthorIds))
+        List<PdfComment> comments = pdfCommentDataService.findByUserAndPdf(account.getId(), pdfId);
+        Map<Long, Long> likeCounts = likeDataService.countByComment(comments.stream().map(PdfComment::getId).toList());
+
+        return comments.stream()
+                .map(comment -> mapper.toOwnDto(comment, pdfAuthorIds, likeCounts.getOrDefault(comment.getId(), 0L)))
                 .toList();
     }
 
