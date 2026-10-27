@@ -32,6 +32,10 @@ public class CommentContentValidator {
         this.maxLength = maxLength;
     }
 
+    public int getMaxLength() {
+        return maxLength;
+    }
+
     public String validate(String raw) throws CommentContentException {
         if (raw == null)
             throw new CommentContentException(CommentContentError.EMPTY);

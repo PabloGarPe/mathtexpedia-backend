@@ -39,6 +39,10 @@ public class NotificationDto {
     @Schema(description = "Id de la asignatura relacionada", nullable = true, example = "3")
     private Long subjectId;
 
+    @Schema(description = "Id del comentario al que apunta. Solo en las notificaciones de comentarios (COMMENT_REPLY, COMMENT_ON_PDF, "
+            + "COMMENT_REJECTED y COMMENT_REVIEW_PENDING); nulo en el resto", nullable = true, example = "42")
+    private Long commentId;
+
     @Schema(description = "Si el usuario ya la ha leído")
     private boolean read;
 

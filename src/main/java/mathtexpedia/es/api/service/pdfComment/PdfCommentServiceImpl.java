@@ -6,6 +6,8 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaTooManyRequestsException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.pdfComment.CommentConfigDto;
+import mathtexpedia.es.api.domain.model.pdfComment.CommentContextDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentPageDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentStatus;
@@ -138,6 +140,36 @@ public class PdfCommentServiceImpl implements PdfCommentService {
                 .toList();
 
         return new CommentPageDto(items, safePage, safeSize, total, offset + items.size() < total);
+    }
+
+    @Override
+    public CommentContextDto getContext(long commentId) throws MathtexpediaNotFoundException {
+        logger.info("Fetching context of comment {}", commentId);
+
+        PdfComment target = pdfCommentDataService.findById(commentId)
+                .filter(c -> c.getStatus() == CommentStatus.PUBLISHED)
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Published comment not found with id: " + commentId));
+
+        // La raíz se vuelve a cargar entera: el padre de una respuesta viene sin sus relaciones
+        boolean targetIsRoot = target.getParent() == null;
+        PdfComment root = targetIsRoot ? target : pdfCommentDataService.findById(target.getParent().getId())
+                .orElseThrow(() -> new MathtexpediaNotFoundException("Root comment not found for comment: " + commentId));
+
+        Set<Long> pdfAuthorIds = authorIds(findPdfOrThrow(target.getPdf().getId()));
+        long rootId = root.getId();
+        long replyCount = pdfCommentDataService.countPublishedReplies(List.of(rootId)).getOrDefault(rootId, 0L);
+        Map<Long, Long> likeCounts = likeDataService.countByComment(List.of(rootId, commentId));
+
+        CommentDto rootDto = mapper.toPublicDto(root, pdfAuthorIds, replyCount, likeCounts.getOrDefault(rootId, 0L));
+        CommentDto targetDto = targetIsRoot ? rootDto
+                : mapper.toPublicDto(target, pdfAuthorIds, null, likeCounts.getOrDefault(commentId, 0L));
+
+        return new CommentContextDto(rootDto, targetDto);
+    }
+
+    @Override
+    public CommentConfigDto getConfig() {
+        return new CommentConfigDto(contentValidator.getMaxLength(), maxPendingPerUser);
     }
 
     @Override

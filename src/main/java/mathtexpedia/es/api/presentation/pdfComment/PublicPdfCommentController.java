@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
+import mathtexpedia.es.api.domain.model.pdfComment.CommentContextDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentPageDto;
 import mathtexpedia.es.api.infrastructure.application.PublicEndpoint;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -66,5 +67,23 @@ public class PublicPdfCommentController extends GenericController implements Pub
         logger.debug("Called getReplies for comment {}", commentId);
 
         return ResponseEntity.ok(pdfCommentService.getReplies(commentId, page, size));
+    }
+
+    @Operation(summary = "Un comentario junto a la raíz de su hilo",
+            description = "Para enlazar a un comentario concreto (por ejemplo desde una notificación) sin paginar hasta encontrarlo. "
+                    + "'root' es la raíz del hilo con 'replyCount' (con 'available' a false si ya no está publicada pero conserva "
+                    + "respuestas) y 'target' el comentario pedido, que es el mismo que 'root' si es una raíz",
+            security = { @SecurityRequirement })
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Comentario y raíz de su hilo"),
+            @ApiResponse(responseCode = "404", description = "No existe ningún comentario con ese id o no está publicado")
+    })
+    @GetMapping("comments/{commentId}/context")
+    public ResponseEntity<CommentContextDto> getContext(
+            @Parameter(description = "Id del comentario", required = true) @PathVariable long commentId
+    ) throws MathtexpediaNotFoundException {
+        logger.debug("Called getContext for comment {}", commentId);
+
+        return ResponseEntity.ok(pdfCommentService.getContext(commentId));
     }
 }

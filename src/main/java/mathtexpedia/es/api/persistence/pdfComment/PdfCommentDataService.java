@@ -16,6 +16,7 @@ public interface PdfCommentDataService {
 
     Optional<PdfComment> findById(long id);
     List<PdfComment> findByUserAndPdf(long userId, long pdfId);
+    /** El pendiente más antiguo, sin cargar sus relaciones (solo es seguro leer sus campos propios, como id y body). */
     Optional<PdfComment> findOldestPending();
     List<PdfComment> findByStatuses(Collection<CommentStatus> statuses, int offset, int limit);
     List<PdfComment> findVisibleRoots(long pdfId, int offset, int limit);

@@ -172,9 +172,9 @@ public class PdfCommentDao extends GenericJPADao implements PdfCommentDataServic
         Session session = em.unwrap(Session.class);
         CriteriaBuilder cb = session.getCriteriaBuilder();
 
+        // Sin fetchAssociations: el worker que sondea esto cada pocos segundos solo necesita el id y el texto
         CriteriaQuery<PdfComment> cq = cb.createQuery(PdfComment.class);
         Root<PdfComment> root = cq.from(PdfComment.class);
-        fetchAssociations(root);
         cq.select(root)
                 .where(cb.equal(root.get("status"), CommentStatus.PENDING))
                 .orderBy(cb.asc(root.get("createdAt")), cb.asc(root.get("id")));

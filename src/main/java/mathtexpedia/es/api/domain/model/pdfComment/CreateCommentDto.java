@@ -8,7 +8,7 @@ import lombok.Data;
 public class CreateCommentDto {
 
     @NotNull
-    @Schema(description = "Texto en Markdown con fórmulas LaTeX ($...$). Sin enlaces, imágenes ni HTML. Máximo 1000 caracteres",
+    @Schema(description = "Texto en Markdown con fórmulas LaTeX ($...$). Sin enlaces, imágenes ni HTML. Máximo 2000 caracteres (por defecto; propiedad comments.max-length)",
             example = "¿Alguien sabe por qué en la página 12 se puede intercambiar el límite con la integral?")
     private String body;
 

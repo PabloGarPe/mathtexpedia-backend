@@ -18,7 +18,9 @@ public class AdminCommentDto {
     private Long id;
     private Long pdfId;
     private String pdfName;
+    @Schema(description = "Raíz del hilo; nulo si es una raíz", nullable = true)
     private Long parentId;
+    @Schema(description = "Comentario al que contesta; nulo en las raíces", nullable = true)
     private Long replyToId;
     private AuthorDto author;
     private String authorEmail;
@@ -35,6 +37,8 @@ public class AdminCommentDto {
     private Map<ReportReason, Long> reportReasons;
 
     private Instant createdAt;
+    @Schema(description = "Cuándo se publicó; nulo si todavía no se ha publicado", nullable = true)
     private Instant publishedAt;
+    @Schema(description = "Cuándo lo evaluó la IA o un admin; nulo si todavía no ha pasado por moderación", nullable = true)
     private Instant moderatedAt;
 }

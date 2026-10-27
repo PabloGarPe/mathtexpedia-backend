@@ -7,6 +7,8 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaInvalidException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaTooManyRequestsException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
+import mathtexpedia.es.api.domain.model.pdfComment.CommentConfigDto;
+import mathtexpedia.es.api.domain.model.pdfComment.CommentContextDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentPageDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CreateCommentDto;
@@ -36,6 +38,16 @@ public interface PdfCommentService {
 
     /** Respuestas publicadas de una raíz, de la más antigua a la más reciente. Público. */
     CommentPageDto getReplies(long rootId, int page, int size) throws MathtexpediaNotFoundException;
+
+    /**
+     * Un comentario publicado junto a la raíz de su hilo, para enlazar a él sin paginar. Público.
+     *
+     * @throws MathtexpediaNotFoundException el comentario no existe o no está publicado
+     */
+    CommentContextDto getContext(long commentId) throws MathtexpediaNotFoundException;
+
+    /** Límites que aplican a los comentarios (para que el front no los repita a mano). Público. */
+    CommentConfigDto getConfig();
 
     /** Todos los comentarios del usuario en el PDF salvo los borrados, con su estado (pendiente, en revisión, rechazado…). */
     List<CommentDto> getMine(long pdfId, UserProfile user) throws MathtexpediaUnauthorizedException, MathtexpediaNotFoundException;
