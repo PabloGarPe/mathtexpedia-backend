@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Setter;
 import lombok.ToString;
 import mathtexpedia.es.api.domain.model.userAccount.UserStatus;
+import mathtexpedia.es.api.domain.security.UserRole;
 import mathtexpedia.es.api.persistence.degree.Degree;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
@@ -72,6 +73,10 @@ public class UserAccount {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status = UserStatus.ACTIVE;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 16)
+    private UserRole role;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

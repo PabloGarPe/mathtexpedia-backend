@@ -33,6 +33,7 @@
 		<resend.version>4.13.0</resend.version>
 		<springdoc.version>3.1.0</springdoc.version>
 		<aws.sdk.version>2.55.6</aws.sdk.version>
+		<spring.ai.version>2.0.2</spring.ai.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
@@ -40,6 +41,13 @@
 				<groupId>software.amazon.awssdk</groupId>
 				<artifactId>bom</artifactId>
 				<version>${aws.sdk.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring.ai.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -169,6 +177,17 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-ollama</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.swagger.core.v3</groupId>
+					<artifactId>swagger-annotations-jakarta</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 	</dependencies>
 
