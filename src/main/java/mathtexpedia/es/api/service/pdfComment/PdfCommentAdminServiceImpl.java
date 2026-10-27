@@ -9,6 +9,7 @@ import mathtexpedia.es.api.domain.model.pdfComment.AdminCommentDto;
 import mathtexpedia.es.api.domain.model.pdfComment.AdminCommentPageDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentStatus;
 import mathtexpedia.es.api.domain.model.pdfComment.ModerationCategory;
+import mathtexpedia.es.api.domain.model.pdfComment.ModerationStatusDto;
 import mathtexpedia.es.api.persistence.pdfComment.PdfComment;
 import mathtexpedia.es.api.persistence.pdfComment.PdfCommentDataService;
 import mathtexpedia.es.api.persistence.pdfCommentReport.PdfCommentReportDataService;
@@ -32,15 +33,18 @@ public class PdfCommentAdminServiceImpl implements PdfCommentAdminService {
     private final PdfCommentReportDataService reportDataService;
     private final PdfCommentMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
+    private final ModerationAvailability availability;
 
     public PdfCommentAdminServiceImpl(PdfCommentDataService pdfCommentDataService,
                                       PdfCommentReportDataService reportDataService,
                                       PdfCommentMapper mapper,
-                                      ApplicationEventPublisher eventPublisher) {
+                                      ApplicationEventPublisher eventPublisher,
+                                      ModerationAvailability availability) {
         this.pdfCommentDataService = pdfCommentDataService;
         this.reportDataService = reportDataService;
         this.mapper = mapper;
         this.eventPublisher = eventPublisher;
+        this.availability = availability;
     }
 
     @Override
@@ -97,5 +101,16 @@ public class PdfCommentAdminServiceImpl implements PdfCommentAdminService {
     private PdfComment find(long commentId) throws MathtexpediaNotFoundException {
         return pdfCommentDataService.findById(commentId)
                 .orElseThrow(() -> new MathtexpediaNotFoundException("Comment not found with id: " + commentId));
+    }
+
+    @Override
+    public ModerationStatusDto getModerationStatus() {
+        ModerationAvailability.Status status = availability.status();
+        return new ModerationStatusDto(
+                status.available(),
+                status.since(),
+                status.nextCheckAt(),
+                pdfCommentDataService.countByStatuses(Set.of(CommentStatus.PENDING)),
+                pdfCommentDataService.countByStatuses(Set.of(CommentStatus.REVIEW)));
     }
 }

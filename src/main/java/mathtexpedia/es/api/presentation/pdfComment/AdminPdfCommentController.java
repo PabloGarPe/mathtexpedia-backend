@@ -12,6 +12,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.exception.MathtexpediaUnauthorizedException;
 import mathtexpedia.es.api.domain.model.pdfComment.AdminCommentPageDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentStatus;
+import mathtexpedia.es.api.domain.model.pdfComment.ModerationStatusDto;
 import mathtexpedia.es.api.domain.model.pdfComment.RejectCommentDto;
 import mathtexpedia.es.api.domain.security.UserProfile;
 import mathtexpedia.es.api.presentation.GenericController;
@@ -58,6 +59,24 @@ public class AdminPdfCommentController extends GenericController {
         Set<CommentStatus> statuses = status == null || status.isEmpty()
                 ? EnumSet.of(CommentStatus.REVIEW, CommentStatus.HIDDEN) : status;
         return ResponseEntity.ok(adminService.getQueue(statuses, page, size));
+    }
+
+    @Operation(summary = "Estado de la moderación automática",
+            description = "Si la IA está respondiendo, desde cuándo y cuándo se volverá a comprobar, más el número de comentarios "
+                    + "esperando a la IA (PENDING) y a un administrador (REVIEW). Con la IA caída, los comentarios nuevos esperan "
+                    + "en PENDING y un administrador puede aprobarlos o rechazarlos a mano")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Estado de la moderación"),
+            @ApiResponse(responseCode = "401", description = "Sin token válido o el usuario no es administrador")
+    })
+    @GetMapping("/moderation-status")
+    public ResponseEntity<ModerationStatusDto> getModerationStatus(
+            @AuthenticationPrincipal UserProfile user
+    ) throws MathtexpediaUnauthorizedException {
+        checkIfAdmin(user);
+        logger.debug("Called getModerationStatus by admin {}", user.getId());
+
+        return ResponseEntity.ok(adminService.getModerationStatus());
     }
 
     @Operation(summary = "Apruebo un comentario",

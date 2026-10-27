@@ -6,6 +6,7 @@ import mathtexpedia.es.api.domain.exception.MathtexpediaNotFoundException;
 import mathtexpedia.es.api.domain.model.pdfComment.AdminCommentPageDto;
 import mathtexpedia.es.api.domain.model.pdfComment.CommentStatus;
 import mathtexpedia.es.api.domain.model.pdfComment.ModerationCategory;
+import mathtexpedia.es.api.domain.model.pdfComment.ModerationStatusDto;
 
 import java.util.Set;
 
@@ -35,4 +36,7 @@ public interface PdfCommentAdminService {
      * @throws MathtexpediaConflictException ya está rechazado o borrado
      */
     void reject(long commentId, ModerationCategory category) throws MathtexpediaNotFoundException, MathtexpediaConflictException;
+
+    /** Estado de la moderación automática y tamaño de las colas de espera. */
+    ModerationStatusDto getModerationStatus();
 }
