@@ -29,7 +29,8 @@ public class NotificationMapper {
 
     public NotificationDto toDto(NotificationDelivery delivery) {
         Notification notification = delivery.getNotification();
-        RenderedNotification rendered = rendererRegistry.render(notification.getType(), readPayload(notification));
+        Map<String, Object> payload = readPayload(notification);
+        RenderedNotification rendered = rendererRegistry.render(notification.getType(), payload);
 
         return new NotificationDto(
                 delivery.getId(),
@@ -41,10 +42,16 @@ public class NotificationMapper {
                 notification.getResourceType(),
                 notification.getResourceId(),
                 notification.getSubjectId(),
+                commentIdOf(payload),
                 delivery.getReadAt() != null,
                 delivery.getReadAt(),
                 delivery.getCreatedAt()
         );
+    }
+
+    /** Las notificaciones de comentarios guardan el id del comentario en el payload; el resto no tiene ese dato. */
+    private static Long commentIdOf(Map<String, Object> payload) {
+        return payload.get("commentId") instanceof Number id ? id.longValue() : null;
     }
 
     private Map<String, Object> readPayload(Notification notification) {
