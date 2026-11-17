@@ -95,7 +95,7 @@ public class SubjectSubscriptionDao extends GenericJPADao implements SubjectSubs
         // El SQL se construye según haga falta en vez de pasar parámetros nulos (Postgres no infiere su tipo en "? IS NULL").
         StringBuilder sql = new StringBuilder("""
                 INSERT INTO subject_subscription (user_id, subject_id, created_at)
-                SELECT :userId, ds.subject_id, :now
+                SELECT :userId, ds.subject_id, CAST(:now AS timestamp with time zone)
                 FROM degree_subject ds
                 WHERE ds.degree_id = :degreeId AND ds.course_year = :year
                 """);
@@ -121,7 +121,7 @@ public class SubjectSubscriptionDao extends GenericJPADao implements SubjectSubs
 
         StringBuilder sql = new StringBuilder("""
                 INSERT INTO subject_subscription (user_id, subject_id, created_at)
-                SELECT DISTINCT cs.user_id, :subjectId, :now
+                SELECT DISTINCT cs.user_id, :subjectId, CAST(:now AS timestamp with time zone)
                 FROM course_subscription cs JOIN user_account u ON u.id = cs.user_id
                 WHERE cs.degree_id = :degreeId AND cs.course_year = :year AND u.status = 'ACTIVE'
                 """);
